@@ -75,3 +75,19 @@ body {
 .animate-spin-num {
   animation: spin-num 0.4s ease-out;
 }
+
+@keyframes deal {
+  0% { transform: translateY(-26px) rotate(-6deg); opacity: 0; }
+  100% { transform: translateY(0) rotate(0); opacity: 1; }
+}
+.animate-deal {
+  animation: deal 0.32s ease-out;
+}
+
+@keyframes balance-flash {
+  0% { color: #f5d77a; text-shadow: 0 0 14px rgba(227, 179, 65, 0.9); transform: scale(1.18); }
+  100% { color: inherit; text-shadow: none; transform: scale(1); }
+}
+.balance-flash {
+  animation: balance-flash 0.9s ease-out;
+}

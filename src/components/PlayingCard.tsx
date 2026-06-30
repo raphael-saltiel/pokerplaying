@@ -2,11 +2,11 @@ import type { Card } from "@/lib/types";
 
 export function PlayingCard({ card, hidden }: { card?: Card; hidden?: boolean }) {
   if (hidden || !card) {
-    return <div className="playing-card back animate-pop" aria-label="carte cachée" />;
+    return <div className="playing-card back animate-deal" aria-label="carte cachée" />;
   }
   const red = card.suit === "♥" || card.suit === "♦";
   return (
-    <div className={`playing-card animate-pop ${red ? "red" : ""}`}>
+    <div className={`playing-card animate-deal ${red ? "red" : ""}`}>
       <span className="text-sm leading-none">
         {card.rank}
         {card.suit}

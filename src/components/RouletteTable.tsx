@@ -5,6 +5,7 @@ import { usePlayer } from "@/components/PlayerProvider";
 import { post } from "@/lib/client";
 import { formatChips } from "@/lib/format";
 import { colorOf, betLabel } from "@/lib/games/roulette";
+import { RouletteWheel } from "@/components/RouletteWheel";
 import type { RouletteBet, RouletteBetKind, RouletteState } from "@/lib/types";
 
 const CHIPS = [10, 50, 100, 500, 1000];
@@ -111,23 +112,18 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
           </div>
         </div>
 
+        {/* Roue animée */}
+        <RouletteWheel result={state.lastResult} spinId={state.spinId} />
         {state.phase === "result" && state.lastResult !== null && (
-          <div key={state.spinId} className="animate-spin-num mb-4 text-center">
-            <div
-              className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full text-3xl font-extrabold ${pill(
-                state.lastResult
-              )}`}
-            >
-              {state.lastResult}
-            </div>
-            <p className="mt-2 text-sm text-white/70">
-              {colorOf(state.lastResult) === "green"
-                ? "Zéro !"
-                : colorOf(state.lastResult) === "red"
-                ? "Rouge"
-                : "Noir"}
-            </p>
-          </div>
+          <p className="mb-4 text-center text-sm text-white/80">
+            Résultat :{" "}
+            <span className="font-bold text-gold">{state.lastResult}</span>{" "}
+            {colorOf(state.lastResult) === "green"
+              ? "(Zéro !)"
+              : colorOf(state.lastResult) === "red"
+              ? "(Rouge)"
+              : "(Noir)"}
+          </p>
         )}
 
         {/* Grille des numéros */}
