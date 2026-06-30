@@ -39,10 +39,25 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         { event: "UPDATE", schema: "public", table: "players", filter: `id=eq.${id}` },
         (payload) => {
           const row = payload.new as Player;
-          setPlayer((p) => (p ? { ...p, balance: row.balance } : p));
+          if (typeof row?.balance === "number") {
+            setPlayer((p) => (p ? { ...p, balance: row.balance } : p));
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // À chaque (re)connexion du canal, on resynchronise le solde depuis le
+        // serveur pour rattraper d'éventuelles mises à jour manquées hors-ligne.
+        if (status === "SUBSCRIBED") {
+          fetch(`/api/player?id=${id}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => {
+              if (data && typeof data.balance === "number") {
+                setPlayer((p) => (p ? { ...p, balance: data.balance } : p));
+              }
+            })
+            .catch(() => {});
+        }
+      });
     channelRef.current = ch;
   }, []);
 

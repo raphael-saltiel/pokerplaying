@@ -11,7 +11,15 @@ const CHIPS = [10, 50, 100, 500, 1000];
 
 const NUMBERS = Array.from({ length: 37 }, (_, i) => i); // 0..36
 
-export function RouletteTable({ code, state }: { code: string; state: RouletteState }) {
+export function RouletteTable({ code, state: raw }: { code: string; state: RouletteState }) {
+  // Filet de sécurité : on garantit que les collections existent toujours.
+  const state: RouletteState = {
+    ...raw,
+    bets: raw.bets ?? [],
+    history: raw.history ?? [],
+    players: raw.players ?? [],
+    lastPayouts: raw.lastPayouts ?? [],
+  };
   const { player, setBalance } = usePlayer();
   const [chip, setChip] = useState(50);
   const [busy, setBusy] = useState(false);

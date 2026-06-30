@@ -44,12 +44,40 @@ export async function commitTable(
 }
 
 /**
+ * Commit de l'état ET crédit des gagnants dans UNE SEULE transaction Postgres
+ * (garde de version optimiste incluse). Renvoie true si le commit a eu lieu.
+ * Garantit qu'aucun gain n'est perdu si le serveur plante entre les deux.
+ */
+export async function resolveTable(
+  code: string,
+  expectedVersion: number,
+  newState: any,
+  credits: Record<string, number>
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.rpc("resolve_table", {
+    p_code: code,
+    p_expected_version: expectedVersion,
+    p_new_state: newState,
+    p_credits: credits ?? {},
+  });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
+/**
  * Boucle "lire → muter → commit" avec réessais en cas de conflit de version.
  * `mutator` reçoit l'état courant et renvoie le nouvel état (ou null pour annuler).
+ * Si la mutation renvoie `credits`, l'état et les soldes sont validés ensemble,
+ * de façon atomique (via resolve_table).
  */
 export async function withTable<T = void>(
   code: string,
-  mutator: (table: LoadedTable) => Promise<{ state: any; result?: T } | null> | { state: any; result?: T } | null,
+  mutator: (
+    table: LoadedTable
+  ) =>
+    | Promise<{ state: any; result?: T; credits?: Record<string, number> } | null>
+    | { state: any; result?: T; credits?: Record<string, number> }
+    | null,
   attempts = 6
 ): Promise<{ ok: boolean; result?: T; reason?: string }> {
   for (let i = 0; i < attempts; i++) {
@@ -57,7 +85,9 @@ export async function withTable<T = void>(
     if (!table) return { ok: false, reason: "Table introuvable." };
     const mutation = await mutator(table);
     if (mutation === null) return { ok: false, reason: "rejected" };
-    const committed = await commitTable(code, table.version, mutation.state);
+    const committed = mutation.credits
+      ? await resolveTable(code, table.version, mutation.state, mutation.credits)
+      : await commitTable(code, table.version, mutation.state);
     if (committed) return { ok: true, result: mutation.result };
     // sinon : conflit de version, on relit et on réessaie
   }
@@ -107,13 +137,18 @@ export async function withBlackjack(
     const deck = await loadDeck(code);
     const out = action(table.state, deck);
     if (out === null) return { ok: false, reason: "rejected" };
-    const committed = await commitTable(code, table.version, out.state);
+    // Si gains à verser : état + soldes validés atomiquement (resolve_table).
+    const committed = out.credits
+      ? await resolveTable(code, table.version, out.state, out.credits)
+      : await commitTable(code, table.version, out.state);
     if (committed) {
-      await saveDeck(code, out.deck);
-      if (out.credits) {
-        for (const [pid, amount] of Object.entries(out.credits)) {
-          if (amount > 0) await adjustBalance(pid, amount);
-        }
+      // Le sabot (table séparée) est persisté après coup : en cas d'échec ici,
+      // aucun jeton n'est perdu (seul le paquet pourrait différer, re-mélangé
+      // au prochain tour). On l'isole pour ne jamais bloquer un crédit déjà fait.
+      try {
+        await saveDeck(code, out.deck);
+      } catch (e) {
+        console.error("[withBlackjack] saveDeck a échoué après commit:", e);
       }
       return { ok: true };
     }

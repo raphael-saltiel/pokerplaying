@@ -53,6 +53,52 @@ end;
 $$;
 
 -- =====================================================================
+--  Résolution atomique d'un tour : met à jour l'état de la table (avec
+--  garde de version optimiste) ET crédite les gagnants, le tout dans une
+--  seule transaction. Évite toute perte de gain si le serveur plante entre
+--  le commit de l'état et le crédit des soldes.
+--    p_credits : objet jsonb { "<playerId>": <montant>, ... }
+--  Retourne true si le commit a eu lieu, false en cas de conflit de version.
+-- =====================================================================
+create or replace function public.resolve_table(
+  p_code text,
+  p_expected_version integer,
+  p_new_state jsonb,
+  p_credits jsonb
+)
+returns boolean
+language plpgsql
+as $$
+declare
+  rows_updated integer;
+  r record;
+begin
+  update public.tables
+     set state = p_new_state,
+         version = version + 1,
+         updated_at = now()
+   where code = p_code
+     and version = p_expected_version;
+  get diagnostics rows_updated = row_count;
+  if rows_updated = 0 then
+    return false; -- conflit de version : un autre process a déjà résolu
+  end if;
+
+  if p_credits is not null then
+    for r in select key, value from jsonb_each_text(p_credits) loop
+      if r.value::bigint > 0 then
+        update public.players
+           set balance = balance + r.value::bigint
+         where id = r.key::uuid;
+      end if;
+    end loop;
+  end if;
+
+  return true;
+end;
+$$;
+
+-- =====================================================================
 --  Row Level Security
 --  Les clients (clé anon) peuvent UNIQUEMENT lire.
 --  Toutes les écritures passent par l'API serveur avec la clé service_role,

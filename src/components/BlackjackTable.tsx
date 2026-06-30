@@ -10,7 +10,13 @@ import type { BlackjackState, Seat } from "@/lib/types";
 
 const CHIPS = [50, 100, 250, 500];
 
-export function BlackjackTable({ code, state }: { code: string; state: BlackjackState }) {
+export function BlackjackTable({ code, state: raw }: { code: string; state: BlackjackState }) {
+  // Filet de sécurité contre un état partiel : les structures existent toujours.
+  const state: BlackjackState = {
+    ...raw,
+    seats: raw.seats ?? [],
+    dealer: raw.dealer ?? { cards: [], hidden: true },
+  };
   const { player, setBalance } = usePlayer();
   const [chip, setChip] = useState(100);
   const [busy, setBusy] = useState(false);
