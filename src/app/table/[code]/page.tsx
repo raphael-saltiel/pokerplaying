@@ -1,20 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { use } from "react";
 import { Header } from "@/components/Header";
 import { Gate } from "@/components/Gate";
 import { useTable } from "@/components/useTable";
 import { RouletteTable } from "@/components/RouletteTable";
 import { BlackjackTable } from "@/components/BlackjackTable";
 
-export default function TablePage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
-  const { code } = use(params);
-  const upper = code.toUpperCase();
+export default function TablePage({ params }: { params: { code: string } }) {
+  const upper = params.code.toUpperCase();
   return (
     <main className="min-h-screen">
       <Header />

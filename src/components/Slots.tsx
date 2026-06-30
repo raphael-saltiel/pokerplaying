@@ -40,11 +40,13 @@ export function Slots() {
       setTimeout(() => {
         setReels(data.reels);
         setBalance(data.balance);
-        setMsg(
-          data.win
-            ? `🎉 Gagné +${formatChips(data.payout)} jetons !`
-            : `Perdu ${formatChips(bet)} jetons.`
-        );
+        if (data.payout > 0) {
+          setMsg(`🎉 Gagné +${formatChips(data.payout)} jetons !`);
+        } else if (data.payout === 0) {
+          setMsg(`😐 Mise rendue (±0).`);
+        } else {
+          setMsg(`Perdu ${formatChips(bet)} jetons.`);
+        }
         setSpinning(false);
       }, 300);
     } catch {
