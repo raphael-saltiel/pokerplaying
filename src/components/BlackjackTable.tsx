@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "@/components/PlayerProvider";
 import { PlayingCard } from "@/components/PlayingCard";
 import { post } from "@/lib/client";
@@ -21,6 +21,27 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
   const [chip, setChip] = useState(100);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [, setTick] = useState(0);
+  const firedRef = useRef<number | null>(null);
+
+  // Minuteur : distribution / tour / nouveau tour automatiques.
+  useEffect(() => {
+    if (state.deadline == null) {
+      firedRef.current = null;
+      return;
+    }
+    const id = setInterval(() => {
+      setTick((t) => t + 1);
+      if (Date.now() >= state.deadline! && firedRef.current !== state.deadline) {
+        firedRef.current = state.deadline!;
+        post("/api/blackjack/advance", { code });
+      }
+    }, 300);
+    return () => clearInterval(id);
+  }, [state.deadline, code]);
+
+  const secondsLeft =
+    state.deadline != null ? Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000)) : null;
 
   const mySeatIndex = state.seats.findIndex((s) => s?.playerId === player?.id);
   const mySeat = mySeatIndex >= 0 ? state.seats[mySeatIndex] : null;
@@ -54,10 +75,19 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
   return (
     <div className="card-surface p-4">
       {/* Message / phase */}
-      <div className="mb-4 text-center">
+      <div className="mb-4 flex flex-col items-center gap-1 text-center">
         <span className="rounded-full bg-black/40 px-4 py-1 text-sm text-gold">
           {state.message}
         </span>
+        {secondsLeft != null && (
+          <span className="text-xs text-white/60">
+            {state.phase === "betting"
+              ? `Distribution dans ${secondsLeft}s`
+              : state.phase === "playing"
+              ? `Tour auto dans ${secondsLeft}s`
+              : `Nouveau tour dans ${secondsLeft}s`}
+          </span>
+        )}
       </div>
 
       {/* Croupier */}

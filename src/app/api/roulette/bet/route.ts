@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withTable, adjustBalance, getPlayer } from "@/lib/gameStore";
+import { ROULETTE_BET_MS } from "@/lib/games/roulette";
 import type { RouletteBetKind } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,9 @@ export async function POST(req: NextRequest) {
       const players = (t.state.players ?? []).some((p: any) => p.id === playerId)
         ? t.state.players
         : [...(t.state.players ?? []), { id: playerId, name: String(name).slice(0, 20) }];
-      return { state: { ...t.state, players, bets: [...t.state.bets, bet] } };
+      // Démarre le décompte avant tirage auto dès la première mise du tour.
+      const deadline = t.state.deadline ?? Date.now() + ROULETTE_BET_MS;
+      return { state: { ...t.state, players, bets: [...t.state.bets, bet], deadline } };
     });
 
     if (!res.ok) {

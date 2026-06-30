@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
           phase: "betting",
           bets: [],
           lastPayouts: [],
+          deadline: null, // le décompte repart à la première mise
         },
       };
     });

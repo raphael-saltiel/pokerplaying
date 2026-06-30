@@ -52,6 +52,7 @@ export interface RouletteState {
   lastResult: number | null;
   history: number[];
   spinId: number; // incrémenté à chaque tirage (sync animation)
+  deadline: number | null; // timestamp ms : auto-spin / auto nouveau tour
   lastPayouts?: { playerId: string; name: string; net: number }[];
 }
 
@@ -106,6 +107,7 @@ export interface BlackjackState {
   turnSeat: number | null;
   round: number;
   message: string;
+  deadline: number | null; // timestamp ms : auto-distribution / tour / nouveau tour
 }
 
 export const BLACKJACK_SEATS = 5;

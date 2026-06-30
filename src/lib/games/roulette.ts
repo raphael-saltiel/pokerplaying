@@ -1,4 +1,8 @@
-import type { RouletteBet } from "@/lib/types";
+import type { RouletteBet, RouletteState } from "@/lib/types";
+
+// Durées (ms) des minuteurs.
+export const ROULETTE_BET_MS = 25000; // décompte avant tirage auto
+export const ROULETTE_RESULT_MS = 8000; // affichage du résultat avant nouveau tour
 
 // Roulette européenne : un seul zéro (0-36).
 export const RED_NUMBERS = new Set([
@@ -62,6 +66,48 @@ export function betWins(bet: RouletteBet, result: number): boolean {
 /** Tire un numéro aléatoire 0-36. */
 export function spinWheel(): number {
   return Math.floor(Math.random() * 37);
+}
+
+/**
+ * Résout le tour de roulette : tire un numéro, calcule l'état résultat et les
+ * crédits (mise + gain) à reverser. Pur — utilisé par /spin et /advance.
+ */
+export function resolveRoulette(
+  state: RouletteState,
+  now: number
+): { state: RouletteState; credits: Record<string, number>; result: number } {
+  const result = spinWheel();
+  const bets: RouletteBet[] = state.bets ?? [];
+
+  const credits: Record<string, number> = {};
+  const staked: Record<string, number> = {};
+  const names: Record<string, string> = {};
+  for (const b of bets) {
+    names[b.playerId] = b.name;
+    staked[b.playerId] = (staked[b.playerId] ?? 0) + b.amount;
+    const mult = betMultiplier(b, result);
+    if (mult > 0) credits[b.playerId] = (credits[b.playerId] ?? 0) + b.amount * (1 + mult);
+  }
+
+  const lastPayouts = Object.keys(staked).map((pid) => ({
+    playerId: pid,
+    name: names[pid],
+    net: (credits[pid] ?? 0) - staked[pid],
+  }));
+
+  const history = [result, ...(state.history ?? [])].slice(0, 15);
+
+  const newState: RouletteState = {
+    ...state,
+    phase: "result",
+    bets: [],
+    lastResult: result,
+    history,
+    spinId: (state.spinId ?? 0) + 1,
+    deadline: now + ROULETTE_RESULT_MS,
+    lastPayouts,
+  };
+  return { state: newState, credits, result };
 }
 
 export function betLabel(bet: RouletteBet): string {

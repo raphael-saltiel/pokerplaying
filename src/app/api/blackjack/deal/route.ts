@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withBlackjack } from "@/lib/gameStore";
-import { dealRound, payoutCredits } from "@/lib/games/blackjack";
+import { dealRound, payoutCredits, bjDeadline } from "@/lib/games/blackjack";
 import type { Seat } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       const hasBets = state.seats.some((s: Seat | null) => s && s.bet > 0);
       if (!hasBets) return null;
       const out = dealRound(state, deck);
+      out.state.deadline = bjDeadline(out.state, Date.now());
       const credits =
         out.state.phase === "payout" ? payoutCredits(out.state) : undefined;
       return { state: out.state, deck: out.deck, credits };

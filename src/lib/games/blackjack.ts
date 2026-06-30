@@ -3,6 +3,18 @@ import type { BlackjackState, Card, Seat } from "@/lib/types";
 
 const DEALER_STANDS_AT = 17; // le croupier tire jusqu'à 17 (reste sur tout 17)
 
+// Durées (ms) des minuteurs.
+export const BJ_BET_MS = 20000; // décompte avant distribution auto
+export const BJ_TURN_MS = 20000; // temps pour jouer son tour (sinon "Rester")
+export const BJ_PAYOUT_MS = 7000; // affichage des gains avant nouveau tour
+
+/** Échéance du minuteur selon la phase atteinte. */
+export function bjDeadline(state: BlackjackState, now: number): number | null {
+  if (state.phase === "playing") return now + BJ_TURN_MS;
+  if (state.phase === "payout") return now + BJ_PAYOUT_MS;
+  return state.deadline ?? null;
+}
+
 function clone<T>(x: T): T {
   return JSON.parse(JSON.stringify(x));
 }
@@ -232,5 +244,6 @@ export function resetForNewRound(state: BlackjackState): BlackjackState {
     phase: "betting",
     turnSeat: null,
     message: "Placez vos mises.",
+    deadline: null, // le décompte repart à la première mise
   };
 }

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withTable } from "@/lib/gameStore";
-import { betMultiplier, spinWheel } from "@/lib/games/roulette";
-import type { RouletteBet } from "@/lib/types";
+import { resolveRoulette } from "@/lib/games/roulette";
 
 export const dynamic = "force-dynamic";
 
@@ -11,43 +10,10 @@ export async function POST(req: NextRequest) {
     const code = String((await req.json()).code ?? "").toUpperCase();
     if (!code) return NextResponse.json({ error: "code requis." }, { status: 400 });
 
+    const now = Date.now();
     const res = await withTable<{ result: number }>(code, (t) => {
       if (t.state.phase !== "betting") return null;
-
-      const result = spinWheel();
-      const bets: RouletteBet[] = t.state.bets ?? [];
-
-      // crédit brut (mise + gain) à reverser par joueur, et net pour l'affichage
-      const credits: Record<string, number> = {};
-      const staked: Record<string, number> = {};
-      const names: Record<string, string> = {};
-      for (const b of bets) {
-        names[b.playerId] = b.name;
-        staked[b.playerId] = (staked[b.playerId] ?? 0) + b.amount;
-        const mult = betMultiplier(b, result);
-        if (mult > 0) {
-          credits[b.playerId] =
-            (credits[b.playerId] ?? 0) + b.amount * (1 + mult);
-        }
-      }
-
-      const lastPayouts = Object.keys(staked).map((pid) => ({
-        playerId: pid,
-        name: names[pid],
-        net: (credits[pid] ?? 0) - staked[pid],
-      }));
-
-      const history = [result, ...(t.state.history ?? [])].slice(0, 15);
-
-      const state = {
-        ...t.state,
-        phase: "result",
-        bets: [],
-        lastResult: result,
-        history,
-        spinId: (t.state.spinId ?? 0) + 1,
-        lastPayouts,
-      };
+      const { state, credits, result } = resolveRoulette(t.state, now);
       // credits transmis à withTable => état + soldes validés atomiquement.
       return { state, result: { result }, credits };
     });
@@ -58,7 +24,6 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
-
     return NextResponse.json({ ok: true, result: res.result!.result });
   } catch (e: any) {
     return NextResponse.json(

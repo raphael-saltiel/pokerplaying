@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withTable, adjustBalance, getPlayer } from "@/lib/gameStore";
+import { BJ_BET_MS } from "@/lib/games/blackjack";
 import type { Seat } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,9 @@ export async function POST(req: NextRequest) {
       const seats = state.seats.map((s: Seat | null, i: number) =>
         i === idx ? { ...s, bet: s!.bet + amount } : s
       );
-      return { state: { ...state, seats } };
+      // Démarre le décompte avant distribution auto dès la première mise.
+      const deadline = state.deadline ?? Date.now() + BJ_BET_MS;
+      return { state: { ...state, seats, deadline } };
     });
 
     if (!res.ok) {

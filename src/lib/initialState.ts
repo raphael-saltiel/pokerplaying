@@ -9,6 +9,7 @@ export function initialState(game: GameType) {
       lastResult: null,
       history: [],
       spinId: 0,
+      deadline: null,
     };
   }
   if (game === "poker") {
@@ -37,5 +38,6 @@ export function initialState(game: GameType) {
     turnSeat: null,
     round: 0,
     message: "Prenez une place et misez.",
+    deadline: null,
   };
 }

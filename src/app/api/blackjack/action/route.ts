@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withBlackjack, adjustBalance, loadTable, getPlayer } from "@/lib/gameStore";
-import { hit, stand, double, payoutCredits } from "@/lib/games/blackjack";
+import { hit, stand, double, payoutCredits, bjDeadline } from "@/lib/games/blackjack";
 import type { Seat } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
         if (seat.cards.length !== 2) return null;
         out = double(state, deck, idx);
       }
+      out.state.deadline = bjDeadline(out.state, Date.now());
       const credits =
         out.state.phase === "payout" ? payoutCredits(out.state) : undefined;
       return { state: out.state, deck: out.deck, credits };

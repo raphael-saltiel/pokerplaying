@@ -24,7 +24,9 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
   const [chip, setChip] = useState(50);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [, setTick] = useState(0);
   const joined = useRef(false);
+  const firedRef = useRef<number | null>(null);
 
   // Présence : on s'annonce une fois.
   useEffect(() => {
@@ -32,6 +34,25 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
     joined.current = true;
     post("/api/roulette/join", { code, playerId: player.id, name: player.name });
   }, [player, code]);
+
+  // Minuteur : tirage auto / nouveau tour auto quand l'échéance est atteinte.
+  useEffect(() => {
+    if (state.deadline == null) {
+      firedRef.current = null;
+      return;
+    }
+    const id = setInterval(() => {
+      setTick((t) => t + 1);
+      if (Date.now() >= state.deadline! && firedRef.current !== state.deadline) {
+        firedRef.current = state.deadline!;
+        post("/api/roulette/advance", { code });
+      }
+    }, 300);
+    return () => clearInterval(id);
+  }, [state.deadline, code]);
+
+  const secondsLeft =
+    state.deadline != null ? Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000)) : null;
 
   const betting = state.phase === "betting";
   const myBets = state.bets.filter((b) => b.playerId === player?.id);
@@ -193,7 +214,17 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
             </button>
           )}
           <p className="mt-2 text-center text-xs text-white/50">
-            {betting ? "Tout le monde peut lancer la roue." : "Tour terminé."}
+            {secondsLeft != null ? (
+              <span className="text-gold">
+                {betting
+                  ? `Tirage auto dans ${secondsLeft}s`
+                  : `Nouveau tour dans ${secondsLeft}s`}
+              </span>
+            ) : betting ? (
+              "Placez vos mises pour démarrer le décompte."
+            ) : (
+              "Tour terminé."
+            )}
           </p>
         </div>
 
