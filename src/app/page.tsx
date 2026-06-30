@@ -109,7 +109,7 @@ function Lobby() {
         <div className="card-surface flex flex-col justify-center p-5 text-sm text-white/70">
           <h3 className="mb-2 font-display text-xl text-gold">Comment jouer ?</h3>
           <ol className="list-decimal space-y-1 pl-5">
-            <li>Crée une table (Roulette ou Blackjack).</li>
+            <li>Crée une table (Poker, Roulette ou Blackjack).</li>
             <li>Partage le code à 4 lettres à tes collègues.</li>
             <li>Ils saisissent le code ci-dessus pour te rejoindre.</li>
             <li>Tout le monde voit les mises et résultats en direct.</li>

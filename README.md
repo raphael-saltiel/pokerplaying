@@ -3,9 +3,12 @@
 Un **casino multijoueur en temps réel** pour jouer entre collègues avec de l'argent
 fictif. Chaque joueur démarre avec **10 000 jetons**.
 
-- 🎡 **Roulette** européenne — misez tous ensemble sur une roue partagée
+- ♠ **Poker Texas Hold'em** No-Limit — jusqu'à 6 joueurs, blindes, mises, tapis, side pots, abattage, démarrage automatique
+- 🎡 **Roulette** européenne — misez tous ensemble sur une roue partagée animée
 - 🃏 **Blackjack** — jusqu'à 5 joueurs à la même table contre le croupier
 - 🎰 **Machine à sous** — un jeu solo en bonus
+
+Tous les jeux multijoueurs se lancent et s'enchaînent **automatiquement** (minuteurs).
 
 Stack : **Next.js 14** (App Router) + **Supabase** (Postgres + temps réel) +
 **Tailwind CSS**. Conçu pour être déployé sur **Vercel**.
