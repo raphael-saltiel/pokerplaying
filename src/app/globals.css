@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #0e8347 0%, #073d22 55%, #04250f 100%);
+  min-height: 100vh;
+  color: #f5f2e8;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-semibold
+           transition active:scale-95 disabled:opacity-40 disabled:active:scale-100
+           disabled:cursor-not-allowed;
+  }
+  .btn-gold {
+    @apply btn bg-gold text-black shadow-glow hover:bg-gold-light;
+  }
+  .btn-dark {
+    @apply btn bg-black/40 text-gold border border-gold/40 hover:bg-black/60;
+  }
+  .btn-ghost {
+    @apply btn bg-white/5 text-white/90 border border-white/15 hover:bg-white/10;
+  }
+  .card-surface {
+    @apply rounded-2xl border border-gold/25 bg-black/30 backdrop-blur-sm shadow-xl;
+  }
+  .chip-input {
+    @apply rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-white
+           outline-none focus:border-gold;
+  }
+}
+
+/* Carte à jouer */
+.playing-card {
+  width: 52px;
+  height: 74px;
+  border-radius: 8px;
+  background: #fffdf7;
+  color: #111;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 6px;
+  font-weight: 700;
+  position: relative;
+}
+.playing-card.red {
+  color: #c81e1e;
+}
+.playing-card.back {
+  background: repeating-linear-gradient(45deg, #7a1020, #7a1020 6px, #54101a 6px, #54101a 12px);
+  border: 2px solid #e3b341;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop {
+  animation: pop 0.25s ease-out;
+}
+
+@keyframes spin-num {
+  0% { transform: translateY(-6px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.animate-spin-num {
+  animation: spin-num 0.4s ease-out;
+}
