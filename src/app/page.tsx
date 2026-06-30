@@ -79,7 +79,14 @@ function Lobby() {
       {err && <p className="mb-4 text-center text-red-400">{err}</p>}
 
       {/* Jeux multijoueurs */}
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-3">
+        <GameCard
+          title="♠ Poker"
+          desc="Texas Hold'em No-Limit. Blindes, mises, abattage, tapis. Jusqu'à 6 joueurs, départ automatique."
+          accent="from-amber-900/40"
+          onCreate={() => createTable("poker")}
+          loading={busy === "poker"}
+        />
         <GameCard
           title="🎡 Roulette"
           desc="Misez tous ensemble, une roue partagée. Rouge/noir, numéros, douzaines…"

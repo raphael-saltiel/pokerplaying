@@ -2,7 +2,7 @@
 
 export const STARTING_BALANCE = 10000;
 
-export type GameType = "roulette" | "blackjack";
+export type GameType = "roulette" | "blackjack" | "poker";
 
 export interface Player {
   id: string;
@@ -109,3 +109,49 @@ export interface BlackjackState {
 }
 
 export const BLACKJACK_SEATS = 5;
+
+// ---------------------- Poker (Texas Hold'em) ----------------------
+
+export type PokerStreet = "preflop" | "flop" | "turn" | "river" | "showdown";
+
+export interface PokerSeat {
+  playerId: string;
+  name: string;
+  stack: number; // jetons devant le joueur, à la table
+  bet: number; // engagé sur la street courante
+  committed: number; // engagé total sur la main (pour les side pots)
+  folded: boolean;
+  allIn: boolean;
+  acted: boolean; // a agi depuis la dernière relance
+  hasCards: boolean; // en jeu cette main
+  cards?: Card[]; // renseigné UNIQUEMENT à l'abattage (révélation publique)
+  sittingOut: boolean; // assis mais pas dans la main (stack 0 ou arrivé en cours)
+  lastAction?: string; // pour l'affichage : "Suit", "Relance 200"…
+}
+
+export interface PokerWinner {
+  playerId: string;
+  name: string;
+  amount: number;
+  hand?: string; // nom de la main gagnante
+}
+
+export interface PokerState {
+  phase: "waiting" | "playing" | "showdown";
+  seats: (PokerSeat | null)[];
+  board: Card[]; // cartes communes
+  pot: number;
+  street: PokerStreet;
+  button: number; // siège du bouton donneur
+  currentBet: number; // mise la plus haute à suivre sur la street
+  minRaise: number; // incrément minimal de relance
+  toAct: number | null; // siège dont c'est le tour
+  smallBlind: number;
+  bigBlind: number;
+  handNo: number;
+  deadline: number | null; // timestamp ms : auto-action (tour) / auto-départ
+  winners?: PokerWinner[];
+  message: string;
+}
+
+export const POKER_SEATS = 6;

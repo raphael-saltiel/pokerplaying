@@ -6,6 +6,7 @@ import { Gate } from "@/components/Gate";
 import { useTable } from "@/components/useTable";
 import { RouletteTable } from "@/components/RouletteTable";
 import { BlackjackTable } from "@/components/BlackjackTable";
+import { PokerTable } from "@/components/PokerTable";
 
 export default function TablePage({ params }: { params: { code: string } }) {
   const upper = params.code.toUpperCase();
@@ -49,6 +50,8 @@ function Room({ code }: { code: string }) {
       </div>
       {table.game === "roulette" ? (
         <RouletteTable code={code} state={table.state as any} />
+      ) : table.game === "poker" ? (
+        <PokerTable code={code} state={table.state as any} />
       ) : (
         <BlackjackTable code={code} state={table.state as any} />
       )}

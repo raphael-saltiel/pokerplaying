@@ -20,7 +20,7 @@ function randomCode(len = 4): string {
 export async function POST(req: NextRequest) {
   try {
     const { game, hostId } = await req.json();
-    if (game !== "roulette" && game !== "blackjack") {
+    if (game !== "roulette" && game !== "blackjack" && game !== "poker") {
       return NextResponse.json({ error: "Jeu inconnu." }, { status: 400 });
     }
     const state = initialState(game as GameType);
@@ -35,10 +35,10 @@ export async function POST(req: NextRequest) {
         host_id: hostId ?? null,
       });
       if (!error) {
-        if (game === "blackjack") {
+        if (game === "blackjack" || game === "poker") {
           await supabaseAdmin
             .from("table_secrets")
-            .upsert({ code, deck: [] });
+            .upsert({ code, deck: [], hole: {} });
         }
         return NextResponse.json({ code, game });
       }

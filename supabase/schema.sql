@@ -29,8 +29,11 @@ create index if not exists tables_updated_at_idx on public.tables (updated_at de
 -- pour qu'un joueur ne puisse pas voir les cartes à venir.
 create table if not exists public.table_secrets (
   code  text primary key references public.tables(code) on delete cascade,
-  deck  jsonb not null default '[]'::jsonb
+  deck  jsonb not null default '[]'::jsonb,
+  hole  jsonb not null default '{}'::jsonb   -- cartes privées (poker) : { playerId: [c,c] }
 );
+-- Pour les bases déjà créées avant l'ajout de la colonne :
+alter table public.table_secrets add column if not exists hole jsonb not null default '{}'::jsonb;
 
 -- =====================================================================
 --  Ajustement atomique de solde (évite les pertes de mise concurrentes).

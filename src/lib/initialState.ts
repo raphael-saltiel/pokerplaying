@@ -1,4 +1,4 @@
-import { BLACKJACK_SEATS, type GameType } from "@/lib/types";
+import { BLACKJACK_SEATS, POKER_SEATS, type GameType } from "@/lib/types";
 
 export function initialState(game: GameType) {
   if (game === "roulette") {
@@ -9,6 +9,24 @@ export function initialState(game: GameType) {
       lastResult: null,
       history: [],
       spinId: 0,
+    };
+  }
+  if (game === "poker") {
+    return {
+      phase: "waiting",
+      seats: Array(POKER_SEATS).fill(null),
+      board: [],
+      pot: 0,
+      street: "preflop",
+      button: 0,
+      currentBet: 0,
+      minRaise: 50,
+      toAct: null,
+      smallBlind: 25,
+      bigBlind: 50,
+      handNo: 0,
+      deadline: null,
+      message: "En attente de joueurs…",
     };
   }
   // blackjack

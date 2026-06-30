@@ -173,3 +173,65 @@ export async function saveDeck(code: string, deck: Card[]): Promise<void> {
     .upsert({ code, deck });
   if (error) throw new Error(error.message);
 }
+
+// ---------------- Secret poker (sabot + cartes privées) ----------------
+
+export interface PokerSecret {
+  deck: Card[];
+  hole: Record<string, Card[]>;
+}
+
+export async function loadPokerSecret(code: string): Promise<PokerSecret> {
+  const { data, error } = await supabaseAdmin
+    .from("table_secrets")
+    .select("deck, hole")
+    .eq("code", code)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return {
+    deck: ((data?.deck as Card[]) ?? []) as Card[],
+    hole: ((data?.hole as Record<string, Card[]>) ?? {}) as Record<string, Card[]>,
+  };
+}
+
+export async function savePokerSecret(code: string, secret: PokerSecret): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("table_secrets")
+    .upsert({ code, deck: secret.deck, hole: secret.hole });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Orchestration d'une transition poker : lit table + secret, applique l'action,
+ * commit l'état (garde de version), puis persiste sabot + cartes privées.
+ * Le poker ne touche aux soldes qu'à l'achat de cave / sortie (pas en cours de
+ * main) : ici on ne fait que de l'état + secret.
+ * `action` renvoie { state, deck, hole } ou null pour rejeter.
+ */
+export async function withPoker(
+  code: string,
+  action: (
+    state: any,
+    secret: PokerSecret
+  ) => { state: any; deck: Card[]; hole: Record<string, Card[]> } | null,
+  attempts = 6
+): Promise<{ ok: boolean; reason?: string }> {
+  for (let i = 0; i < attempts; i++) {
+    const table = await loadTable(code);
+    if (!table) return { ok: false, reason: "Table introuvable." };
+    const secret = await loadPokerSecret(code);
+    const out = action(table.state, secret);
+    if (out === null) return { ok: false, reason: "rejected" };
+    const committed = await commitTable(code, table.version, out.state);
+    if (committed) {
+      try {
+        await savePokerSecret(code, { deck: out.deck, hole: out.hole });
+      } catch (e) {
+        console.error("[withPoker] savePokerSecret a échoué après commit:", e);
+      }
+      return { ok: true };
+    }
+    // conflit de version -> relire et réessayer
+  }
+  return { ok: false, reason: "Conflit de concurrence, réessaie." };
+}
