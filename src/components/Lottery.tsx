@@ -27,6 +27,9 @@ export function Lottery() {
   const [selected, setSelected] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [left, setLeft] = useState(0);
   const targetRef = useRef(0);
   const confettiRef = useRef<string | null>(null);
@@ -38,15 +41,20 @@ export function Lottery() {
       const d = await res.json();
       if (res.ok) {
         setData(d);
+        setLoadErr(null);
         targetRef.current = Date.now() + d.nextDrawIn;
         // confettis si j'ai gagné au dernier tirage (une fois)
         if (d.last && confettiRef.current !== d.last.date) {
           confettiRef.current = d.last.date;
           if (d.last.myTickets.some((t: LastTicket) => t.prize > 0)) fireConfetti({ count: 150 });
         }
+      } else {
+        setLoadErr(d.error ?? `Erreur ${res.status}`);
       }
     } catch {
-      /* ignore */
+      setLoadErr("Réseau indisponible.");
+    } finally {
+      setLoaded(true);
     }
   }, [player]);
 
@@ -90,6 +98,7 @@ export function Lottery() {
       } else {
         setBalance(d.balance);
         setSelected([]);
+        setMsg("🎟️ Ticket enregistré ! Résultat au prochain tirage (minuit UTC).");
         load();
       }
     } catch {
@@ -99,7 +108,37 @@ export function Lottery() {
     }
   }
 
-  if (!data) return null;
+  // États visibles (au lieu de disparaître en silence si l'API échoue).
+  if (!loaded) {
+    return (
+      <section className="mt-8">
+        <h2 className="mb-2 font-display text-2xl font-bold tracking-wide text-neon-green">
+          🎱 Loto quotidien
+        </h2>
+        <div className="card-surface p-4 text-sm text-white/60">Chargement du loto…</div>
+      </section>
+    );
+  }
+  if (loadErr || !data) {
+    return (
+      <section className="mt-8">
+        <h2 className="mb-2 font-display text-2xl font-bold tracking-wide text-neon-green">
+          🎱 Loto quotidien
+        </h2>
+        <div className="card-surface p-4 text-sm">
+          <p className="mb-2 text-red-400">Loto indisponible : {loadErr ?? "aucune donnée"}.</p>
+          <p className="text-white/60">
+            Vérifie que le schéma SQL a bien été (ré)exécuté dans Supabase (tables{" "}
+            <code className="text-neon-cyan">lottery_draws</code> et{" "}
+            <code className="text-neon-cyan">lottery_tickets</code>), puis redéploie.
+          </p>
+          <button onClick={() => { setLoaded(false); load(); }} className="btn-dark mt-3 text-sm">
+            Réessayer
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   const prizeRows = Object.entries(data.prizes).sort((a, b) => Number(b[0]) - Number(a[0]));
 
@@ -156,6 +195,7 @@ export function Lottery() {
             </div>
           </div>
           {err && <p className="mt-2 text-sm text-red-400">{err}</p>}
+          {msg && !err && <p className="mt-2 text-sm text-neon-green">{msg}</p>}
         </div>
 
         {/* Panneau latéral */}

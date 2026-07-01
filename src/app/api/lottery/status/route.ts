@@ -68,11 +68,12 @@ export async function GET(req: NextRequest) {
     const today = drawDateOf(now);
 
     // Résout les tirages passés encore en attente.
-    const { data: pending } = await supabaseAdmin
+    const { data: pending, error: ePending } = await supabaseAdmin
       .from("lottery_tickets")
       .select("draw_date")
       .lt("draw_date", today)
       .eq("prize", -1);
+    if (ePending) throw new Error(ePending.message);
     const dates = [...new Set((pending ?? []).map((p) => p.draw_date as string))];
     for (const dt of dates) await resolveDraw(dt);
 
