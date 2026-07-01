@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Gate } from "@/components/Gate";
 import { Slots } from "@/components/Slots";
 import { ScratchCards } from "@/components/ScratchCards";
+import { Lottery } from "@/components/Lottery";
 import { Intro } from "@/components/Intro";
 import { Logo } from "@/components/Logo";
 import { usePlayer } from "@/components/PlayerProvider";
@@ -129,6 +130,9 @@ function Lobby() {
 
       {/* Tickets à gratter */}
       <ScratchCards />
+
+      {/* Loto quotidien */}
+      <Lottery />
     </div>
   );
 }

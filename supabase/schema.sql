@@ -35,6 +35,31 @@ create table if not exists public.table_secrets (
 -- Pour les bases déjà créées avant l'ajout de la colonne :
 alter table public.table_secrets add column if not exists hole jsonb not null default '{}'::jsonb;
 
+-- ---------- Loterie quotidienne ----------
+-- Un tirage par jour (date UTC). Les numéros gagnants sont générés une seule
+-- fois (clé primaire sur la date), au moment de la résolution.
+create table if not exists public.lottery_draws (
+  draw_date  text primary key,          -- 'YYYY-MM-DD' (UTC)
+  numbers    jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.lottery_tickets (
+  id         uuid primary key default gen_random_uuid(),
+  draw_date  text not null,
+  player_id  uuid not null,
+  name       text not null,
+  numbers    jsonb not null,
+  prize      bigint not null default -1, -- -1 = non résolu, sinon gain (0 = perdant)
+  created_at timestamptz not null default now()
+);
+create index if not exists lottery_tickets_date_idx on public.lottery_tickets (draw_date);
+create index if not exists lottery_tickets_player_idx on public.lottery_tickets (player_id);
+
+alter table public.lottery_draws   enable row level security;
+alter table public.lottery_tickets enable row level security;
+-- Aucune policy : accès uniquement via l'API serveur (service_role).
+
 -- =====================================================================
 --  Ajustement atomique de solde (évite les pertes de mise concurrentes).
 --  Retourne le nouveau solde, ou NULL si fonds insuffisants.

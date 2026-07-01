@@ -70,6 +70,36 @@ export const TICKETS: ScratchTicket[] = [
       { amount: 100000, weight: 4 },
     ],
   },
+  {
+    id: "platine",
+    name: "PLATINE",
+    tagline: "Le ticket haut de gamme",
+    price: 2500,
+    color: "yellow",
+    prizes: [
+      { amount: 0, weight: 1359 },
+      { amount: 1000, weight: 400 },
+      { amount: 2500, weight: 170 },
+      { amount: 10000, weight: 50 },
+      { amount: 50000, weight: 16 },
+      { amount: 250000, weight: 5 },
+    ],
+  },
+  {
+    id: "ultra",
+    name: "ULTRA JACKPOT",
+    tagline: "Le million est à portée de gratte",
+    price: 5000,
+    color: "magenta",
+    prizes: [
+      { amount: 0, weight: 1447 },
+      { amount: 2500, weight: 360 },
+      { amount: 5000, weight: 140 },
+      { amount: 25000, weight: 40 },
+      { amount: 100000, weight: 10 },
+      { amount: 1000000, weight: 3 },
+    ],
+  },
 ];
 
 export function getTicket(id: string): ScratchTicket | undefined {
