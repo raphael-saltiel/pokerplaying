@@ -1,16 +1,18 @@
-import { buildShoe, handTotal, isBlackjack } from "./cards";
-import type { BlackjackState, Card, Seat } from "@/lib/types";
+import { buildShoe, handTotal, isBlackjack, cardValue } from "./cards";
+import { MAX_SPLIT_HANDS, type BJHand, type BlackjackState, type Card, type Seat } from "@/lib/types";
 
 const DEALER_STANDS_AT = 17; // le croupier tire jusqu'à 17 (reste sur tout 17)
 
 // Durées (ms) des minuteurs.
 export const BJ_BET_MS = 20000; // décompte avant distribution auto
 export const BJ_TURN_MS = 20000; // temps pour jouer son tour (sinon "Rester")
-export const BJ_PAYOUT_MS = 7000; // affichage des gains avant nouveau tour
+export const BJ_INSURANCE_MS = 15000; // temps pour décider de l'assurance
+export const BJ_PAYOUT_MS = 8000; // affichage des gains avant nouveau tour
 
 /** Échéance du minuteur selon la phase atteinte. */
 export function bjDeadline(state: BlackjackState, now: number): number | null {
   if (state.phase === "playing") return now + BJ_TURN_MS;
+  if (state.phase === "insurance") return now + BJ_INSURANCE_MS;
   if (state.phase === "payout") return now + BJ_PAYOUT_MS;
   return state.deadline ?? null;
 }
@@ -19,222 +21,331 @@ function clone<T>(x: T): T {
   return JSON.parse(JSON.stringify(x));
 }
 
-/** Indice de la prochaine place "en jeu" à partir de `from` inclus. */
-function nextPlayingSeat(state: BlackjackState, from: number): number | null {
-  for (let i = from; i < state.seats.length; i++) {
-    if (state.seats[i]?.status === "playing") return i;
+function makeHand(bet: number): BJHand {
+  return { cards: [], bet, status: "playing", doubled: false, splitAce: false, result: null, payout: 0 };
+}
+
+/** Prochaine main jouable strictement après (seat, hand). */
+function findNext(
+  state: BlackjackState,
+  seat: number,
+  hand: number
+): { s: number; h: number } | null {
+  const n = state.seats.length;
+  for (let si = seat; si < n; si++) {
+    const st = state.seats[si];
+    if (!st) continue;
+    const startH = si === seat ? hand + 1 : 0;
+    for (let hi = startH; hi < st.hands.length; hi++) {
+      if (st.hands[hi].status === "playing") return { s: si, h: hi };
+    }
   }
   return null;
 }
 
-/**
- * Distribue un nouveau tour. Les places occupées avec une mise reçoivent 2 cartes,
- * le croupier 2 (dont 1 cachée). Renvoie le nouvel état + le sabot restant.
- */
+// ---------------------------------------------------------------
+//  Distribution
+// ---------------------------------------------------------------
+
 export function dealRound(
   state: BlackjackState,
   deck: Card[]
 ): { state: BlackjackState; deck: Card[] } {
   let shoe = deck.slice();
-  if (shoe.length < 30) shoe = buildShoe(4); // re-mélange si sabot trop court
+  if (shoe.length < 40) shoe = buildShoe(6);
   const draw = (): Card => shoe.pop() as Card;
 
-  const seats = state.seats.map((s) => {
-    if (!s) return null;
-    if (s.bet > 0) {
-      return { ...s, cards: [] as Card[], status: "playing", doubled: false, result: null, payout: 0 } as Seat;
+  const s = clone(state);
+  s.seats = s.seats.map((seat) => {
+    if (!seat) return null;
+    if (seat.baseBet > 0) {
+      const h = makeHand(seat.baseBet);
+      return { ...seat, hands: [h], insurance: 0, insuranceDecided: false, insuranceResult: null } as Seat;
     }
-    // assis sans mise : ne joue pas ce tour
-    return { ...s, cards: [] as Card[], status: "waiting", result: null, payout: 0 } as Seat;
+    return { ...seat, hands: [], insurance: 0, insuranceDecided: false, insuranceResult: null } as Seat;
   });
 
   const dealer: Card[] = [];
   for (let round = 0; round < 2; round++) {
-    for (const s of seats) {
-      if (s && s.bet > 0) s.cards.push(draw());
+    for (const seat of s.seats) {
+      if (seat && seat.hands.length > 0) seat.hands[0].cards.push(draw());
     }
     dealer.push(draw());
   }
+  s.dealer = { cards: dealer, hidden: true };
 
-  // blackjacks naturels
-  for (const s of seats) {
-    if (s && s.bet > 0 && isBlackjack(s.cards)) s.status = "blackjack";
+  // Blackjacks naturels des joueurs.
+  for (const seat of s.seats) {
+    if (seat && seat.hands.length > 0 && isBlackjack(seat.hands[0].cards)) {
+      seat.hands[0].status = "blackjack";
+    }
   }
 
-  const newState: BlackjackState = {
-    ...state,
-    seats,
-    dealer: { cards: dealer, hidden: true },
-    phase: "playing",
-    turnSeat: null,
-    round: state.round + 1,
-    message: "Distribution…",
-  };
+  const up = dealer[0];
+  s.round = state.round + 1;
+  s.turnHand = 0;
 
-  const first = nextPlayingSeat(newState, 0);
-  newState.turnSeat = first;
-  if (first === null) {
-    // personne à jouer (que des blackjacks) -> au croupier
-    return resolveDealer(newState, shoe);
+  if (up.rank === "A") {
+    // Assurance proposée.
+    s.phase = "insurance";
+    s.turnSeat = null;
+    s.message = "Le croupier montre un As — assurance ?";
+    // les sièges sans mise n'ont pas à décider
+    for (const seat of s.seats) {
+      if (seat && seat.hands.length === 0) seat.insuranceDecided = true;
+    }
+    return { state: s, deck: shoe };
   }
-  newState.message = `Au tour de ${seats[first]!.name}.`;
-  return { state: newState, deck: shoe };
+
+  if (cardValue(up) === 10) {
+    // Peek : le croupier vérifie s'il a blackjack.
+    if (isBlackjack(dealer)) {
+      return { state: resolveDealer(s, shoe), deck: shoe };
+    }
+  }
+
+  return { state: startPlay(s, shoe), deck: shoe };
 }
 
-export function hit(
+/** Passe en phase de jeu (ou résout si personne ne joue). */
+function startPlay(s: BlackjackState, shoe: Card[]): BlackjackState {
+  s.phase = "playing";
+  const first = findNext(s, 0, -1);
+  if (!first) return resolveDealer(s, shoe);
+  s.turnSeat = first.s;
+  s.turnHand = first.h;
+  s.message = `Au tour de ${s.seats[first.s]!.name}.`;
+  return s;
+}
+
+// ---------------------------------------------------------------
+//  Assurance
+// ---------------------------------------------------------------
+
+export function setInsurance(
   state: BlackjackState,
-  deck: Card[],
-  seatIndex: number
-): { state: BlackjackState; deck: Card[] } {
-  const shoe = deck.slice();
-  const s = state.seats[seatIndex];
-  if (!s) return { state, deck };
-  const seats = clone(state.seats);
-  const seat = seats[seatIndex]!;
-  seat.cards.push(shoe.pop() as Card);
-  if (handTotal(seat.cards).total > 21) {
-    seat.status = "bust";
-  }
-  let ns: BlackjackState = { ...state, seats };
-  if (seat.status === "bust") {
-    return advance(ns, seatIndex, shoe);
-  }
-  return { state: ns, deck: shoe };
+  seatIndex: number,
+  amount: number
+): BlackjackState | null {
+  if (state.phase !== "insurance") return null;
+  const s = clone(state);
+  const seat = s.seats[seatIndex];
+  if (!seat || seat.hands.length === 0 || seat.insuranceDecided) return null;
+  const max = Math.floor(seat.hands[0].bet / 2);
+  const amt = Math.max(0, Math.min(Math.floor(amount), max));
+  seat.insurance = amt;
+  seat.insuranceDecided = true;
+  return s;
 }
 
-export function stand(
-  state: BlackjackState,
-  deck: Card[],
-  seatIndex: number
-): { state: BlackjackState; deck: Card[] } {
-  const seats = clone(state.seats);
-  seats[seatIndex]!.status = "stand";
-  return advance({ ...state, seats }, seatIndex, deck.slice());
+export function allInsuranceDecided(state: BlackjackState): boolean {
+  return state.seats.every((seat) => !seat || seat.hands.length === 0 || seat.insuranceDecided);
 }
 
-export function double(
-  state: BlackjackState,
-  deck: Card[],
-  seatIndex: number
-): { state: BlackjackState; deck: Card[] } {
-  const shoe = deck.slice();
-  const seats = clone(state.seats);
-  const seat = seats[seatIndex]!;
-  seat.bet = seat.bet * 2; // mise supplémentaire déjà débitée côté route
-  seat.doubled = true;
-  seat.cards.push(shoe.pop() as Card);
-  if (handTotal(seat.cards).total > 21) seat.status = "bust";
-  else seat.status = "stand";
-  return advance({ ...state, seats }, seatIndex, shoe);
-}
-
-/** Passe au joueur suivant, ou lance le croupier si plus personne. */
-function advance(
-  state: BlackjackState,
-  fromSeat: number,
-  deck: Card[]
-): { state: BlackjackState; deck: Card[] } {
-  const next = nextPlayingSeat(state, fromSeat + 1);
-  if (next === null) {
-    return resolveDealer(state, deck);
-  }
-  return {
-    state: { ...state, turnSeat: next, message: `Au tour de ${state.seats[next]!.name}.` },
-    deck,
-  };
-}
-
-/** Le croupier joue puis on résout toutes les mains. */
-function resolveDealer(
+/** Termine la phase d'assurance : le croupier vérifie son blackjack. */
+export function finishInsurance(
   state: BlackjackState,
   deck: Card[]
 ): { state: BlackjackState; deck: Card[] } {
+  const s = clone(state);
   const shoe = deck.slice();
-  const dealerCards = state.dealer.cards.slice();
+  if (isBlackjack(s.dealer.cards)) {
+    return { state: resolveDealer(s, shoe), deck: shoe };
+  }
+  return { state: startPlay(s, shoe), deck: shoe };
+}
 
-  // Le croupier ne tire que s'il reste au moins une main non bust à battre.
-  const anyLive = state.seats.some(
-    (s) => s && s.bet > 0 && (s.status === "stand" || s.status === "blackjack")
+// ---------------------------------------------------------------
+//  Actions du joueur (sur la main active)
+// ---------------------------------------------------------------
+
+function activeHand(s: BlackjackState): BJHand | null {
+  if (s.turnSeat == null) return null;
+  const seat = s.seats[s.turnSeat];
+  return seat?.hands[s.turnHand] ?? null;
+}
+
+export function hit(state: BlackjackState, deck: Card[]): { state: BlackjackState; deck: Card[] } {
+  const s = clone(state);
+  const shoe = deck.slice();
+  const h = activeHand(s)!;
+  h.cards.push(shoe.pop() as Card);
+  if (handTotal(h.cards).total > 21) h.status = "bust";
+  if (h.status === "bust") return advance(s, shoe);
+  return { state: s, deck: shoe };
+}
+
+export function stand(state: BlackjackState, deck: Card[]): { state: BlackjackState; deck: Card[] } {
+  const s = clone(state);
+  const h = activeHand(s)!;
+  h.status = "stand";
+  return advance(s, deck.slice());
+}
+
+export function double(state: BlackjackState, deck: Card[]): { state: BlackjackState; deck: Card[] } {
+  const s = clone(state);
+  const shoe = deck.slice();
+  const h = activeHand(s)!;
+  h.bet *= 2; // mise supplémentaire déjà débitée côté route
+  h.doubled = true;
+  h.cards.push(shoe.pop() as Card);
+  h.status = handTotal(h.cards).total > 21 ? "bust" : "stand";
+  return advance(s, shoe);
+}
+
+export function split(state: BlackjackState, deck: Card[]): { state: BlackjackState; deck: Card[] } {
+  const s = clone(state);
+  const shoe = deck.slice();
+  const seat = s.seats[s.turnSeat!]!;
+  const h = seat.hands[s.turnHand];
+  const isAce = h.cards[0].rank === "A";
+  const moved = h.cards.pop() as Card;
+  const nh = makeHand(h.bet); // mise supplémentaire déjà débitée côté route
+  nh.cards = [moved];
+  // une carte pour chaque main
+  h.cards.push(shoe.pop() as Card);
+  nh.cards.push(shoe.pop() as Card);
+  seat.hands.push(nh);
+
+  if (isAce) {
+    // Split d'As : une seule carte chacune, on ne joue plus.
+    h.status = "stand";
+    h.splitAce = true;
+    nh.status = "stand";
+    nh.splitAce = true;
+    return advance(s, shoe);
+  }
+  // sinon on continue sur la main courante
+  h.status = "playing";
+  nh.status = "playing";
+  return { state: s, deck: shoe };
+}
+
+export function surrender(state: BlackjackState, deck: Card[]): { state: BlackjackState; deck: Card[] } {
+  const s = clone(state);
+  const h = activeHand(s)!;
+  h.status = "done";
+  h.result = "surrender";
+  h.payout = Math.floor(h.bet / 2) - h.bet;
+  return advance(s, deck.slice());
+}
+
+/** Passe à la main suivante, ou déclenche le croupier. */
+function advance(s: BlackjackState, shoe: Card[]): { state: BlackjackState; deck: Card[] } {
+  const next = findNext(s, s.turnSeat!, s.turnHand);
+  if (next) {
+    s.turnSeat = next.s;
+    s.turnHand = next.h;
+    s.message = `Au tour de ${s.seats[next.s]!.name}.`;
+    return { state: s, deck: shoe };
+  }
+  return { state: resolveDealer(s, shoe), deck: shoe };
+}
+
+// ---------------------------------------------------------------
+//  Croupier + résolution
+// ---------------------------------------------------------------
+
+function resolveDealer(s: BlackjackState, shoe: Card[]): BlackjackState {
+  const dealerCards = s.dealer.cards.slice();
+  const dealerBJ = isBlackjack(dealerCards);
+
+  // Le croupier tire s'il reste au moins une main vivante à battre.
+  const anyLive = s.seats.some(
+    (seat) =>
+      seat &&
+      seat.hands.some((h) => h.status === "stand" || h.status === "blackjack")
   );
-  if (anyLive) {
+  if (!dealerBJ && anyLive) {
     while (handTotal(dealerCards).total < DEALER_STANDS_AT) {
       dealerCards.push(shoe.pop() as Card);
     }
   }
-
   const dealerTotal = handTotal(dealerCards).total;
-  const dealerBJ = isBlackjack(dealerCards);
   const dealerBust = dealerTotal > 21;
 
-  const seats = clone(state.seats) as (Seat | null)[];
-  for (const s of seats) {
-    if (!s || s.bet <= 0) continue;
-    if (s.status === "bust") {
-      s.result = "lose";
-      s.payout = -s.bet;
-      continue;
-    }
-    const playerBJ = s.status === "blackjack";
-    const playerTotal = handTotal(s.cards).total;
-    if (playerBJ) {
-      if (dealerBJ) {
-        s.result = "push";
-        s.payout = 0;
-      } else {
-        s.result = "blackjack";
-        s.payout = Math.round(s.bet * 1.5);
+  for (const seat of s.seats) {
+    if (!seat) continue;
+    // Assurance
+    if (seat.insurance > 0) seat.insuranceResult = dealerBJ ? "win" : "lose";
+
+    for (const h of seat.hands) {
+      if (h.result === "surrender") continue; // déjà réglé
+      if (h.status === "bust") {
+        h.result = "lose";
+        h.payout = -h.bet;
+        continue;
       }
-    } else if (dealerBJ) {
-      s.result = "lose";
-      s.payout = -s.bet;
-    } else if (dealerBust || playerTotal > dealerTotal) {
-      s.result = "win";
-      s.payout = s.bet;
-    } else if (playerTotal === dealerTotal) {
-      s.result = "push";
-      s.payout = 0;
-    } else {
-      s.result = "lose";
-      s.payout = -s.bet;
+      const playerBJ = h.status === "blackjack";
+      const playerTotal = handTotal(h.cards).total;
+      if (playerBJ) {
+        if (dealerBJ) {
+          h.result = "push";
+          h.payout = 0;
+        } else {
+          h.result = "blackjack";
+          h.payout = Math.floor(h.bet * 1.5);
+        }
+      } else if (dealerBJ) {
+        h.result = "lose";
+        h.payout = -h.bet;
+      } else if (dealerBust || playerTotal > dealerTotal) {
+        h.result = "win";
+        h.payout = h.bet;
+      } else if (playerTotal === dealerTotal) {
+        h.result = "push";
+        h.payout = 0;
+      } else {
+        h.result = "lose";
+        h.payout = -h.bet;
+      }
     }
   }
 
-  const ns: BlackjackState = {
-    ...state,
-    seats,
-    dealer: { cards: dealerCards, hidden: false },
-    phase: "payout",
-    turnSeat: null,
-    message: dealerBust
-      ? `Le croupier saute (${dealerTotal}) !`
-      : `Le croupier reste à ${dealerTotal}.`,
-  };
-  return { state: ns, deck: shoe };
+  s.dealer = { cards: dealerCards, hidden: false };
+  s.phase = "payout";
+  s.turnSeat = null;
+  s.message = dealerBJ
+    ? "Blackjack du croupier !"
+    : dealerBust
+    ? `Le croupier saute (${dealerTotal}) !`
+    : `Le croupier reste à ${dealerTotal}.`;
+  return s;
 }
 
-/**
- * Crédits (mise + gain) à reverser par joueur après résolution.
- * Les mises ayant été débitées à la mise, on reverse le retour brut.
- */
+/** Retour brut d'une main réglée (mise incluse). */
+function handGross(h: BJHand): number {
+  switch (h.result) {
+    case "blackjack":
+      return h.bet + Math.floor(h.bet * 1.5);
+    case "win":
+      return h.bet * 2;
+    case "push":
+      return h.bet;
+    case "surrender":
+      return Math.floor(h.bet / 2);
+    default:
+      return 0; // lose
+  }
+}
+
+/** Crédits (mise + gain) à reverser par joueur après résolution. */
 export function payoutCredits(state: BlackjackState): Record<string, number> {
   const credits: Record<string, number> = {};
-  for (const s of state.seats) {
-    if (!s || s.bet <= 0 || !s.result) continue;
+  for (const seat of state.seats) {
+    if (!seat) continue;
     let gross = 0;
-    if (s.result === "blackjack") gross = s.bet + Math.round(s.bet * 1.5);
-    else if (s.result === "win") gross = s.bet * 2;
-    else if (s.result === "push") gross = s.bet;
-    else gross = 0;
-    if (gross > 0) credits[s.playerId] = (credits[s.playerId] ?? 0) + gross;
+    for (const h of seat.hands) gross += handGross(h);
+    if (seat.insurance > 0 && seat.insuranceResult === "win") gross += seat.insurance * 3;
+    if (gross > 0) credits[seat.playerId] = (credits[seat.playerId] ?? 0) + gross;
   }
   return credits;
 }
 
-/** Réinitialise pour un nouveau tour en gardant les joueurs assis. */
 export function resetForNewRound(state: BlackjackState): BlackjackState {
   const seats = state.seats.map((s) =>
     s
-      ? { ...s, bet: 0, cards: [], status: "waiting", doubled: false, result: null, payout: 0 }
+      ? { ...s, baseBet: 0, hands: [], insurance: 0, insuranceDecided: false, insuranceResult: null }
       : null
   ) as (Seat | null)[];
   return {
@@ -243,7 +354,31 @@ export function resetForNewRound(state: BlackjackState): BlackjackState {
     dealer: { cards: [], hidden: true },
     phase: "betting",
     turnSeat: null,
+    turnHand: 0,
     message: "Placez vos mises.",
-    deadline: null, // le décompte repart à la première mise
+    deadline: null,
+  };
+}
+
+// ---------------------------------------------------------------
+//  Aides pour l'UI : actions légales sur la main active
+// ---------------------------------------------------------------
+
+export function legalMoves(state: BlackjackState, seatIndex: number) {
+  const none = { canHit: false, canStand: false, canDouble: false, canSplit: false, canSurrender: false };
+  if (state.phase !== "playing" || state.turnSeat !== seatIndex) return none;
+  const seat = state.seats[seatIndex];
+  if (!seat) return none;
+  const h = seat.hands[state.turnHand];
+  if (!h || h.status !== "playing") return none;
+  const twoCards = h.cards.length === 2;
+  const firstDecision = seat.hands.length === 1 && twoCards && !h.doubled;
+  const sameValue = twoCards && cardValue(h.cards[0]) === cardValue(h.cards[1]);
+  return {
+    canHit: true,
+    canStand: true,
+    canDouble: twoCards,
+    canSplit: sameValue && seat.hands.length < MAX_SPLIT_HANDS,
+    canSurrender: firstDecision,
   };
 }

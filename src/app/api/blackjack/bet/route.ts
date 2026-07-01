@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       const idx = state.seats.findIndex((s: Seat | null) => s?.playerId === playerId);
       if (idx < 0) return null; // pas assis
       const seats = state.seats.map((s: Seat | null, i: number) =>
-        i === idx ? { ...s, bet: s!.bet + amount } : s
+        i === idx ? { ...s, baseBet: s!.baseBet + amount } : s
       );
       // Démarre le décompte avant distribution auto dès la première mise.
       const deadline = state.deadline ?? Date.now() + BJ_BET_MS;

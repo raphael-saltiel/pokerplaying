@@ -26,17 +26,16 @@ export async function POST(req: NextRequest) {
       );
       // refus si le joueur avait déjà une mise engagée ailleurs
       const had = state.seats.find((s: Seat | null) => s?.playerId === playerId);
-      if (had && had.bet > 0) return null;
+      if (had && had.baseBet > 0) return null;
 
       seats[seatIndex] = {
         playerId,
         name: String(name).slice(0, 20),
-        bet: 0,
-        cards: [],
-        status: "waiting",
-        doubled: false,
-        result: null,
-        payout: 0,
+        baseBet: 0,
+        hands: [],
+        insurance: 0,
+        insuranceDecided: false,
+        insuranceResult: null,
       } as Seat;
       return { state: { ...state, seats } };
     });

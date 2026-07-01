@@ -17,9 +17,12 @@ export async function POST(req: NextRequest) {
     let refund = 0;
     const res = await withTable(code, (t) => {
       const state = t.state;
-      if (state.phase !== "betting") return null; // on ne peut quitter qu'avant la donne
+      // On ne peut quitter qu'avant la donne ou après le règlement (pas en pleine main).
+      if (state.phase !== "betting" && state.phase !== "payout") return null;
       const seat = state.seats.find((s: Seat | null) => s?.playerId === playerId);
-      refund = seat?.bet ?? 0;
+      if (!seat) return null;
+      // Remboursement de la mise seulement si la main n'a pas encore été distribuée.
+      refund = state.phase === "betting" ? seat.baseBet ?? 0 : 0;
       const seats = state.seats.map((s: Seat | null) =>
         s?.playerId === playerId ? null : s
       );
@@ -28,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: res.reason === "rejected" ? "Impossible de quitter en pleine partie." : res.reason },
+        { error: res.reason === "rejected" ? "Tu pourras quitter à la fin de la main." : res.reason },
         { status: 409 }
       );
     }

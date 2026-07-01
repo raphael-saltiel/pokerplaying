@@ -3,11 +3,13 @@ import { withBlackjack } from "@/lib/gameStore";
 import {
   dealRound,
   stand,
+  setInsurance,
+  finishInsurance,
   resetForNewRound,
   payoutCredits,
   bjDeadline,
 } from "@/lib/games/blackjack";
-import type { Seat } from "@/lib/types";
+import type { BlackjackState, Seat } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +21,27 @@ export async function POST(req: NextRequest) {
     if (!code) return NextResponse.json({ error: "code requis." }, { status: 400 });
 
     const now = Date.now();
-    const res = await withBlackjack(code, (state, deck) => {
+    const res = await withBlackjack(code, (state: BlackjackState, deck) => {
       if (state.deadline == null || now < state.deadline) return null; // pas encore
 
       if (state.phase === "betting") {
-        const hasBets = state.seats.some((s: Seat | null) => s && s.bet > 0);
+        const hasBets = state.seats.some((s: Seat | null) => s && s.baseBet > 0);
         if (!hasBets) return { state: { ...state, deadline: null }, deck };
         const out = dealRound(state, deck);
+        out.state.deadline = bjDeadline(out.state, now);
+        const credits = out.state.phase === "payout" ? payoutCredits(out.state) : undefined;
+        return { state: out.state, deck: out.deck, credits };
+      }
+
+      if (state.phase === "insurance") {
+        // Temps écoulé : les indécis refusent l'assurance, puis on résout.
+        let s = state;
+        state.seats.forEach((seat: Seat | null, i: number) => {
+          if (seat && seat.hands.length > 0 && !seat.insuranceDecided) {
+            s = setInsurance(s, i, 0) ?? s;
+          }
+        });
+        const out = finishInsurance(s, deck);
         out.state.deadline = bjDeadline(out.state, now);
         const credits = out.state.phase === "payout" ? payoutCredits(out.state) : undefined;
         return { state: out.state, deck: out.deck, credits };
@@ -34,7 +50,7 @@ export async function POST(req: NextRequest) {
       if (state.phase === "playing") {
         if (state.turnSeat == null) return null;
         // Temps écoulé -> le joueur reste automatiquement.
-        const out = stand(state, deck, state.turnSeat);
+        const out = stand(state, deck);
         out.state.deadline = bjDeadline(out.state, now);
         const credits = out.state.phase === "payout" ? payoutCredits(out.state) : undefined;
         return { state: out.state, deck: out.deck, credits };

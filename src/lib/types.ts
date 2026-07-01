@@ -78,37 +78,49 @@ export interface Card {
   suit: Suit;
 }
 
-export type SeatStatus =
-  | "empty"
-  | "waiting"
-  | "playing"
-  | "stand"
-  | "bust"
-  | "blackjack"
-  | "done";
+export type HandStatus = "playing" | "stand" | "bust" | "blackjack" | "done";
 
-export type SeatResult = "win" | "lose" | "push" | "blackjack" | null;
+export type SeatResult =
+  | "win"
+  | "lose"
+  | "push"
+  | "blackjack"
+  | "surrender"
+  | null;
+
+// Une main de blackjack (un siège peut en avoir plusieurs après un split).
+export interface BJHand {
+  cards: Card[];
+  bet: number;
+  status: HandStatus;
+  doubled: boolean;
+  splitAce: boolean; // main issue d'un split d'As (une seule carte)
+  result: SeatResult;
+  payout: number; // gain net de cette main (peut être négatif)
+}
 
 export interface Seat {
   playerId: string;
   name: string;
-  bet: number;
-  cards: Card[];
-  status: SeatStatus;
-  doubled: boolean;
-  result: SeatResult;
-  payout: number; // gain net du round (peut être négatif)
+  baseBet: number; // mise posée pendant la phase de mise
+  hands: BJHand[]; // mains en jeu (>1 après split)
+  insurance: number; // mise d'assurance engagée
+  insuranceDecided: boolean; // a répondu à l'assurance
+  insuranceResult?: "win" | "lose" | null; // pour l'affichage
 }
 
 export interface BlackjackState {
-  phase: "betting" | "playing" | "dealer" | "payout";
+  phase: "betting" | "insurance" | "playing" | "payout";
   seats: (Seat | null)[]; // longueur fixe = nombre de places
   dealer: { cards: Card[]; hidden: boolean };
   turnSeat: number | null;
+  turnHand: number; // index de la main active dans le siège
   round: number;
   message: string;
   deadline: number | null; // timestamp ms : auto-distribution / tour / nouveau tour
 }
+
+export const MAX_SPLIT_HANDS = 4;
 
 export const BLACKJACK_SEATS = 5;
 

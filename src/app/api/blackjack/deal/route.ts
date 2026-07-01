@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     const res = await withBlackjack(code, (state, deck) => {
       if (state.phase !== "betting") return null;
-      const hasBets = state.seats.some((s: Seat | null) => s && s.bet > 0);
+      const hasBets = state.seats.some((s: Seat | null) => s && s.baseBet > 0);
       if (!hasBets) return null;
       const out = dealRound(state, deck);
       out.state.deadline = bjDeadline(out.state, Date.now());
