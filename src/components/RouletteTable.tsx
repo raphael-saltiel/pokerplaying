@@ -11,8 +11,6 @@ import type { RouletteBet, RouletteBetKind, RouletteState } from "@/lib/types";
 
 const CHIPS = [10, 50, 100, 500, 1000];
 
-const NUMBERS = Array.from({ length: 37 }, (_, i) => i); // 0..36
-
 export function RouletteTable({ code, state: raw }: { code: string; state: RouletteState }) {
   // Filet de sécurité : on garantit que les collections existent toujours.
   const state: RouletteState = {
@@ -155,45 +153,13 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
         <p className="mb-2 text-center text-[11px] uppercase tracking-widest text-neon-cyan/60">
           Clique une case (répète pour empiler tes jetons)
         </p>
-        {/* Grille des numéros */}
-        <div className="mb-3 grid grid-cols-[auto_1fr] gap-2">
-          <button
-            disabled={!betting || busy}
-            onClick={() => placeBet("number", 0)}
-            className="relative flex w-9 items-center justify-center rounded bg-neon-green/80 font-bold text-black hover:brightness-110 disabled:opacity-50"
-          >
-            0
-            <ChipBadge amount={cellStake("number:0")} />
-          </button>
-          <div className="grid grid-cols-12 gap-1">
-            {NUMBERS.slice(1).map((n) => (
-              <button
-                key={n}
-                disabled={!betting || busy}
-                onClick={() => placeBet("number", n)}
-                className={`relative flex h-8 items-center justify-center rounded text-xs font-bold text-white hover:brightness-125 disabled:opacity-50 ${pill(
-                  n
-                )}`}
-              >
-                {n}
-                <ChipBadge amount={cellStake(`number:${n}`)} />
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Mises extérieures */}
-        <div className="grid grid-cols-3 gap-1 text-xs font-semibold sm:text-sm">
-          <Outside label="1ère 12" onClick={() => placeBet("dozen", 1)} d={!betting || busy} stake={cellStake("dozen:1")} />
-          <Outside label="2e 12" onClick={() => placeBet("dozen", 2)} d={!betting || busy} stake={cellStake("dozen:2")} />
-          <Outside label="3e 12" onClick={() => placeBet("dozen", 3)} d={!betting || busy} stake={cellStake("dozen:3")} />
-          <Outside label="Manque 1-18" onClick={() => placeBet("low")} d={!betting || busy} stake={cellStake("low")} />
-          <Outside label="Pair" onClick={() => placeBet("even")} d={!betting || busy} stake={cellStake("even")} />
-          <Outside label="Impair" onClick={() => placeBet("odd")} d={!betting || busy} stake={cellStake("odd")} />
-          <Outside label="Rouge" onClick={() => placeBet("red")} d={!betting || busy} cls="bg-[#ff1f5a]/70" stake={cellStake("red")} />
-          <Outside label="Noir" onClick={() => placeBet("black")} d={!betting || busy} cls="bg-ink-700" stake={cellStake("black")} />
-          <Outside label="Passe 19-36" onClick={() => placeBet("high")} d={!betting || busy} stake={cellStake("high")} />
-        </div>
+        <RouletteFelt
+          betting={betting}
+          busy={busy}
+          placeBet={placeBet}
+          cellStake={cellStake}
+        />
 
         {err && <p className="mt-3 text-center text-sm text-red-400">{err}</p>}
       </div>
@@ -311,29 +277,127 @@ function BetList({ bets, meId }: { bets: RouletteBet[]; meId?: string }) {
   );
 }
 
-function Outside({
-  label,
-  onClick,
-  d,
-  cls,
-  stake,
+// Tapis de roulette européenne : 0 + 3×12 numéros, colonnes 2:1, douzaines,
+// chances simples. Disposition classique.
+function RouletteFelt({
+  betting,
+  busy,
+  placeBet,
+  cellStake,
 }: {
+  betting: boolean;
+  busy: boolean;
+  placeBet: (kind: RouletteBetKind, value?: number) => void;
+  cellStake: (k: string) => number;
+}) {
+  const d = !betting || busy;
+  const cols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const rows = [0, 1, 2]; // haut, milieu, bas
+  const numBg = (n: number) => (colorOf(n) === "red" ? "bg-[#e01e5a]" : "bg-ink-800");
+
+  return (
+    <div className="mb-3 overflow-x-auto pb-1">
+      <div
+        className="grid gap-1"
+        style={{
+          gridTemplateColumns: "2.4rem repeat(12, minmax(1.7rem, 1fr)) 2.8rem",
+          minWidth: "580px",
+        }}
+      >
+        {/* Zéro */}
+        <button
+          disabled={d}
+          onClick={() => placeBet("number", 0)}
+          style={{ gridColumn: 1, gridRow: "1 / span 3" }}
+          className="relative flex items-center justify-center rounded bg-neon-green/80 font-bold text-black hover:brightness-110 disabled:opacity-50"
+        >
+          0
+          <ChipBadge amount={cellStake("number:0")} />
+        </button>
+
+        {/* Numéros 1-36 */}
+        {cols.flatMap((c) =>
+          rows.map((r) => {
+            const n = 3 * (c + 1) - r;
+            return (
+              <button
+                key={n}
+                disabled={d}
+                onClick={() => placeBet("number", n)}
+                style={{ gridColumn: c + 2, gridRow: r + 1 }}
+                className={`relative flex h-9 items-center justify-center rounded text-xs font-bold text-white transition hover:brightness-150 disabled:opacity-50 ${numBg(
+                  n
+                )}`}
+              >
+                {n}
+                <ChipBadge amount={cellStake(`number:${n}`)} />
+              </button>
+            );
+          })
+        )}
+
+        {/* Colonnes 2:1 */}
+        {rows.map((r) => {
+          const colVal = 3 - r; // haut->3, milieu->2, bas->1
+          return (
+            <button
+              key={`col-${colVal}`}
+              disabled={d}
+              onClick={() => placeBet("column", colVal)}
+              style={{ gridColumn: 14, gridRow: r + 1 }}
+              className="relative flex items-center justify-center rounded border border-neon-cyan/30 bg-ink-600 text-[10px] font-bold text-neon-cyan hover:brightness-125 disabled:opacity-50"
+            >
+              2:1
+              <ChipBadge amount={cellStake(`column:${colVal}`)} />
+            </button>
+          );
+        })}
+
+        {/* Douzaines */}
+        <FeltCell col="2 / span 4" row={4} label="1re DOUZAINE" d={d} onClick={() => placeBet("dozen", 1)} stake={cellStake("dozen:1")} />
+        <FeltCell col="6 / span 4" row={4} label="2e DOUZAINE" d={d} onClick={() => placeBet("dozen", 2)} stake={cellStake("dozen:2")} />
+        <FeltCell col="10 / span 4" row={4} label="3e DOUZAINE" d={d} onClick={() => placeBet("dozen", 3)} stake={cellStake("dozen:3")} />
+
+        {/* Chances simples */}
+        <FeltCell col="2 / span 2" row={5} label="1-18" d={d} onClick={() => placeBet("low")} stake={cellStake("low")} />
+        <FeltCell col="4 / span 2" row={5} label="PAIR" d={d} onClick={() => placeBet("even")} stake={cellStake("even")} />
+        <FeltCell col="6 / span 2" row={5} label="ROUGE" d={d} onClick={() => placeBet("red")} stake={cellStake("red")} cls="bg-[#e01e5a]" />
+        <FeltCell col="8 / span 2" row={5} label="NOIR" d={d} onClick={() => placeBet("black")} stake={cellStake("black")} cls="bg-ink-900 border border-white/25" />
+        <FeltCell col="10 / span 2" row={5} label="IMPAIR" d={d} onClick={() => placeBet("odd")} stake={cellStake("odd")} />
+        <FeltCell col="12 / span 2" row={5} label="19-36" d={d} onClick={() => placeBet("high")} stake={cellStake("high")} />
+      </div>
+    </div>
+  );
+}
+
+function FeltCell({
+  col,
+  row,
+  label,
+  d,
+  onClick,
+  stake,
+  cls,
+}: {
+  col: string;
+  row: number;
   label: string;
-  onClick: () => void;
   d: boolean;
+  onClick: () => void;
+  stake: number;
   cls?: string;
-  stake?: number;
 }) {
   return (
     <button
-      onClick={onClick}
       disabled={d}
-      className={`relative rounded border border-neon-cyan/20 px-2 py-2 text-white hover:brightness-125 disabled:opacity-50 ${
-        cls ?? "bg-felt"
+      onClick={onClick}
+      style={{ gridColumn: col, gridRow: row }}
+      className={`relative flex h-9 items-center justify-center rounded text-[10px] font-bold uppercase tracking-wide text-white transition hover:brightness-125 disabled:opacity-50 ${
+        cls ?? "bg-ink-700 border border-neon-cyan/25"
       }`}
     >
       {label}
-      <ChipBadge amount={stake ?? 0} />
+      <ChipBadge amount={stake} />
     </button>
   );
 }
