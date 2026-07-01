@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePlayer } from "@/components/PlayerProvider";
 import { formatChips } from "@/lib/format";
+import { fireConfetti } from "@/lib/confetti";
 
 const BETS = [10, 50, 100, 500];
 const SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "7️⃣", "💎"];
@@ -41,6 +42,7 @@ export function Slots() {
         if (data.payout > 0) {
           setMsg(`🎉 Gagné +${formatChips(data.payout)} jetons !`);
           setWin({ payout: data.payout, mult: bet > 0 ? Math.round(data.gross / bet) : 0 });
+          fireConfetti();
         } else if (data.payout === 0) {
           setMsg("😐 Mise rendue (±0).");
         } else {

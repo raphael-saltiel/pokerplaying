@@ -7,6 +7,7 @@ import { post } from "@/lib/client";
 import { formatChips } from "@/lib/format";
 import { handTotal } from "@/lib/games/cards";
 import { legalMoves } from "@/lib/games/blackjack";
+import { fireConfetti } from "@/lib/confetti";
 import type { BJHand, BlackjackState, Seat } from "@/lib/types";
 
 const CHIPS = [50, 100, 250, 500];
@@ -64,6 +65,19 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
   useEffect(() => {
     if (mySeat && mySeat.baseBet > 0) lastBetRef.current = mySeat.baseBet;
   }, [mySeat?.baseBet]);
+
+  // Confettis si je gagne net au paiement (une fois par tour).
+  const confettiRoundRef = useRef(-1);
+  useEffect(() => {
+    if (state.phase !== "payout" || !mySeat) return;
+    if (confettiRoundRef.current === state.round) return;
+    confettiRoundRef.current = state.round;
+    const net =
+      mySeat.hands.reduce((s, h) => s + h.payout, 0) +
+      (mySeat.insuranceResult === "win" ? mySeat.insurance * 2 : mySeat.insuranceResult === "lose" ? -mySeat.insurance : 0);
+    if (net > 0) fireConfetti();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase, state.round]);
 
   // Mise automatique : rejoue la même mise au début de chaque nouveau tour.
   useEffect(() => {

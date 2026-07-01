@@ -6,6 +6,7 @@ import { PlayingCard } from "@/components/PlayingCard";
 import { post } from "@/lib/client";
 import { formatChips } from "@/lib/format";
 import { legalFor, POKER_TURN_MS } from "@/lib/games/poker";
+import { fireConfetti } from "@/lib/confetti";
 import type { Card, PokerSeat, PokerState } from "@/lib/types";
 
 export function PokerTable({ code, state: raw }: { code: string; state: PokerState }) {
@@ -49,6 +50,15 @@ export function PokerTable({ code, state: raw }: { code: string; state: PokerSta
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player?.id, state.handNo, mySeat?.hasCards, code]);
+
+  // Confettis quand je remporte une main (une fois par main).
+  const confettiHandRef = useRef(-1);
+  useEffect(() => {
+    if (state.phase !== "showdown" || !player) return;
+    if (confettiHandRef.current === state.handNo) return;
+    confettiHandRef.current = state.handNo;
+    if ((state.winners ?? []).some((w) => w.playerId === player.id)) fireConfetti();
+  }, [state.phase, state.handNo, player, state.winners]);
 
   // Minuteur : déclenche l'avancement quand l'échéance est atteinte.
   useEffect(() => {

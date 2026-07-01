@@ -31,6 +31,7 @@ export default function RootLayout({
     <html lang="fr" className={`${display.variable} ${mono.variable}`}>
       <body>
         <PlayerProvider>{children}</PlayerProvider>
+        <div className="crt-overlay" aria-hidden />
       </body>
     </html>
   );

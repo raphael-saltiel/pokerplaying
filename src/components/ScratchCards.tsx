@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "@/components/PlayerProvider";
 import { formatChips } from "@/lib/format";
+import { fireConfetti } from "@/lib/confetti";
 import { TICKETS, ticketOdds, type NeonColor, type ScratchTicket } from "@/lib/games/scratch";
 
 const COLOR: Record<NeonColor, { text: string; border: string; chip: string; shadow: string }> = {
@@ -125,6 +126,10 @@ function ScratchOverlay({ active, onClose }: { active: ActiveTicket; onClose: ()
   const { ticket, grid, prize } = active;
   const [revealed, setRevealed] = useState(false);
   const c = COLOR[ticket.color];
+
+  useEffect(() => {
+    if (revealed && prize > 0) fireConfetti({ count: 140 });
+  }, [revealed, prize]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">

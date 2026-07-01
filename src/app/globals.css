@@ -117,13 +117,13 @@ body::after {
 
   .card-surface {
     @apply relative;
-    background: linear-gradient(160deg, rgba(26, 15, 51, 0.72), rgba(10, 4, 24, 0.82));
-    border: 1px solid rgba(0, 240, 255, 0.28);
+    background: linear-gradient(160deg, rgba(26, 15, 51, 0.74), rgba(10, 4, 24, 0.85));
+    border: 1px solid rgba(0, 240, 255, 0.42);
     clip-path: var(--hud);
     backdrop-filter: blur(6px);
     box-shadow:
-      inset 0 0 26px rgba(255, 0, 230, 0.06),
-      0 0 22px rgba(0, 240, 255, 0.12);
+      inset 0 0 30px rgba(255, 0, 230, 0.1),
+      0 0 26px rgba(0, 240, 255, 0.18);
   }
 
   .chip-input {
@@ -326,9 +326,111 @@ body::after {
   transition: width 0.3s linear;
 }
 
+/* ---------- Overlay CRT / aberration global ---------- */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.5) 100%);
+}
+.crt-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.13) 0,
+    rgba(0, 0, 0, 0.13) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.5;
+  animation: crt-flicker 5s infinite steps(40);
+}
+.crt-overlay::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 140px;
+  top: -140px;
+  background: linear-gradient(rgba(0, 240, 255, 0.06), rgba(255, 0, 230, 0.03), transparent);
+  animation: crt-scan 7s linear infinite;
+}
+@keyframes crt-scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(100vh + 140px)); }
+}
+@keyframes crt-flicker {
+  0%, 100% { opacity: 0.5; }
+  48% { opacity: 0.44; }
+  50% { opacity: 0.6; }
+  52% { opacity: 0.46; }
+}
+
+/* Léger décalage chromatique sur les titres display */
+.font-display,
+h1, h2 {
+  text-shadow: 0.6px 0 rgba(255, 0, 230, 0.35), -0.6px 0 rgba(0, 240, 255, 0.35);
+}
+.glitch { text-shadow: 0 0 12px rgba(0, 240, 255, 0.55); }
+
+/* ---------- Intro / boot du lobby ---------- */
+.intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  background: radial-gradient(1000px 600px at 50% 40%, #1a0f33 0%, #05010f 70%);
+  animation: intro-out 0.6s ease-in 1.7s forwards;
+}
+.intro-overlay .intro-title {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.35em;
+  font-size: clamp(1.6rem, 7vw, 3.5rem);
+  animation: intro-title 0.9s ease-out both;
+}
+.intro-bar {
+  width: min(70vw, 320px);
+  height: 5px;
+  background: rgba(0, 240, 255, 0.15);
+  overflow: hidden;
+  clip-path: var(--hud);
+}
+.intro-bar > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+  box-shadow: 0 0 14px var(--neon-cyan);
+  animation: intro-load 1.6s ease-out forwards;
+}
+.intro-sub {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  color: rgba(0, 240, 255, 0.7);
+  animation: intro-blink 0.5s steps(2) infinite;
+}
+@keyframes intro-load { to { width: 100%; } }
+@keyframes intro-title {
+  0% { opacity: 0; letter-spacing: 0.9em; filter: blur(8px); }
+  100% { opacity: 1; letter-spacing: 0.35em; filter: none; }
+}
+@keyframes intro-blink { 50% { opacity: 0.3; } }
+@keyframes intro-out { to { opacity: 0; visibility: hidden; } }
+
 /* Réduction des animations si demandé */
 @media (prefers-reduced-motion: reduce) {
-  body::before { animation: none; }
+  body::before,
+  .crt-overlay::before, .crt-overlay::after,
   .glitch::before, .glitch::after,
   .turn-active, .btn:hover:not(:disabled) { animation: none; }
+  .intro-overlay { display: none; }
 }

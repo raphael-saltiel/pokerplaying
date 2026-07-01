@@ -6,6 +6,7 @@ import { post } from "@/lib/client";
 import { formatChips } from "@/lib/format";
 import { colorOf, betLabel } from "@/lib/games/roulette";
 import { RouletteWheel } from "@/components/RouletteWheel";
+import { fireConfetti } from "@/lib/confetti";
 import type { RouletteBet, RouletteBetKind, RouletteState } from "@/lib/types";
 
 const CHIPS = [10, 50, 100, 500, 1000];
@@ -54,6 +55,17 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
 
   const secondsLeft =
     state.deadline != null ? Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000)) : null;
+
+  // Confettis si je gagne au tirage (une fois par spin).
+  const confettiSpinRef = useRef(-1);
+  useEffect(() => {
+    if (state.phase !== "result") return;
+    if (confettiSpinRef.current === state.spinId) return;
+    confettiSpinRef.current = state.spinId;
+    const mine = (state.lastPayouts ?? []).find((p) => p.playerId === player?.id);
+    if (mine && mine.net > 0) fireConfetti();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase, state.spinId, player?.id]);
 
   const betting = state.phase === "betting";
   const myBets = state.bets.filter((b) => b.playerId === player?.id);

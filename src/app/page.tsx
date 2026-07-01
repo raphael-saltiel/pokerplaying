@@ -6,12 +6,14 @@ import { Header } from "@/components/Header";
 import { Gate } from "@/components/Gate";
 import { Slots } from "@/components/Slots";
 import { ScratchCards } from "@/components/ScratchCards";
+import { Intro } from "@/components/Intro";
 import { usePlayer } from "@/components/PlayerProvider";
 import type { GameType } from "@/lib/types";
 
 export default function Home() {
   return (
     <main className="min-h-screen">
+      <Intro />
       <Header />
       <Gate>
         <Lobby />
