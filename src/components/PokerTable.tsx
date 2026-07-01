@@ -34,7 +34,11 @@ export function PokerTable({ code, state: raw }: { code: string; state: PokerSta
       return;
     }
     let active = true;
-    fetch(`/api/poker/me?code=${code}&playerId=${player.id}`)
+    // `no-store` + n° de main dans l'URL : évite que le navigateur serve en
+    // cache les cartes de la main précédente.
+    fetch(`/api/poker/me?code=${code}&playerId=${player.id}&h=${state.handNo}`, {
+      cache: "no-store",
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (active && d) setMyCards(d.cards);

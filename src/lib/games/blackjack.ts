@@ -170,8 +170,16 @@ export function hit(state: BlackjackState, deck: Card[]): { state: BlackjackStat
   const shoe = deck.slice();
   const h = activeHand(s)!;
   h.cards.push(shoe.pop() as Card);
-  if (handTotal(h.cards).total > 21) h.status = "bust";
-  if (h.status === "bust") return advance(s, shoe);
+  const total = handTotal(h.cards).total;
+  if (total > 21) {
+    h.status = "bust";
+    return advance(s, shoe);
+  }
+  // À 21 il n'y a plus rien à faire : on reste automatiquement.
+  if (total === 21) {
+    h.status = "stand";
+    return advance(s, shoe);
+  }
   return { state: s, deck: shoe };
 }
 

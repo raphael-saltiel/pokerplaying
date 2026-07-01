@@ -25,8 +25,11 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
   const [chip, setChip] = useState(100);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [autoRebet, setAutoRebet] = useState(true);
   const [, setTick] = useState(0);
   const firedRef = useRef<number | null>(null);
+  const lastBetRef = useRef(0);
+  const autoBetRoundRef = useRef(-1);
 
   useEffect(() => {
     if (state.deadline == null) {
@@ -56,6 +59,26 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
   const moves = isMyTurn ? legalMoves(state, mySeatIndex) : null;
   const needsInsurance =
     state.phase === "insurance" && mySeat && mySeat.hands.length > 0 && !mySeat.insuranceDecided;
+
+  // Mémorise la dernière mise placée.
+  useEffect(() => {
+    if (mySeat && mySeat.baseBet > 0) lastBetRef.current = mySeat.baseBet;
+  }, [mySeat?.baseBet]);
+
+  // Mise automatique : rejoue la même mise au début de chaque nouveau tour.
+  useEffect(() => {
+    if (!autoRebet || state.phase !== "betting" || !player || !mySeat) return;
+    if (mySeat.baseBet > 0) return; // mise déjà placée ce tour
+    if (lastBetRef.current <= 0) return; // aucune mise précédente
+    if (autoBetRoundRef.current === state.round) return; // déjà rejoué ce tour
+    autoBetRoundRef.current = state.round;
+    post("/api/blackjack/bet", { code, playerId: player.id, amount: lastBetRef.current }).then(
+      ({ ok, data }) => {
+        if (ok && typeof data.balance === "number") setBalance(data.balance);
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRebet, state.phase, state.round, mySeat?.baseBet, player?.id, code]);
 
   async function call(url: string, body: any) {
     setBusy(true);
@@ -107,7 +130,7 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
       </div>
 
       {/* Places */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {state.seats.map((seat, i) => (
           <SeatView
             key={i}
@@ -198,6 +221,15 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
                 <p className="text-xs text-white/60">
                   Ta mise : <span className="text-gold">{formatChips(mySeat.baseBet)}</span>
                 </p>
+                <label className="flex items-center gap-2 text-xs text-white/70">
+                  <input
+                    type="checkbox"
+                    checked={autoRebet}
+                    onChange={(e) => setAutoRebet(e.target.checked)}
+                    className="accent-gold"
+                  />
+                  Mise automatique (rejoue la même mise à chaque tour)
+                </label>
               </>
             ) : (
               <p className="text-sm text-white/70">Clique sur une place libre pour t&apos;asseoir.</p>
@@ -285,7 +317,7 @@ function SeatView({
       <button
         onClick={canSit ? onSit : undefined}
         disabled={!canSit || busy}
-        className={`flex h-44 flex-col items-center justify-center rounded-xl border border-dashed text-sm ${
+        className={`flex min-h-[13rem] flex-col items-center justify-center rounded-xl border border-dashed text-sm ${
           canSit ? "border-gold/50 text-gold hover:bg-gold/10" : "border-white/10 text-white/30"
         }`}
       >
@@ -296,7 +328,7 @@ function SeatView({
 
   return (
     <div
-      className={`flex h-44 flex-col items-center justify-between rounded-xl border p-2 ${
+      className={`flex min-h-[13rem] flex-col items-center justify-between rounded-xl border p-3 ${
         isTurnSeat ? "border-gold shadow-glow" : isMe ? "border-gold/40" : "border-white/15"
       } bg-black/30`}
     >
@@ -319,25 +351,34 @@ function SeatView({
           <span className="text-[11px] text-white/40">sans mise</span>
         )}
         {seat.hands.map((h, hi) => (
-          <HandView key={hi} hand={h} active={isTurnSeat && turnHand === hi} />
+          <HandView
+            key={hi}
+            hand={h}
+            active={isTurnSeat && turnHand === hi}
+            compact={seat.hands.length > 1}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function HandView({ hand, active }: { hand: BJHand; active: boolean }) {
+function HandView({ hand, active, compact }: { hand: BJHand; active: boolean; compact: boolean }) {
   const total = handTotal(hand.cards).total;
   return (
     <div className={`flex flex-col items-center rounded-lg p-1 ${active ? "bg-gold/15 ring-1 ring-gold" : ""}`}>
-      <div className="flex justify-center gap-0.5">
-        {hand.cards.map((c, i) => (
-          <div key={i} style={{ transform: "scale(0.55)", transformOrigin: "top", margin: "-3px -8px" }}>
-            <PlayingCard card={c} />
-          </div>
-        ))}
+      <div className={`flex justify-center ${compact ? "gap-0.5" : "gap-1"}`}>
+        {hand.cards.map((c, i) =>
+          compact ? (
+            <div key={i} style={{ transform: "scale(0.62)", transformOrigin: "top", margin: "-2px -7px" }}>
+              <PlayingCard card={c} />
+            </div>
+          ) : (
+            <PlayingCard key={i} card={c} />
+          )
+        )}
       </div>
-      <div className="text-center text-[11px]">
+      <div className="mt-1 text-center text-xs">
         {hand.cards.length > 0 && <span className="font-bold text-white/80">{total}</span>}
         {hand.bet > 0 && <span className="ml-1 text-white/40">({formatChips(hand.bet)})</span>}
         {hand.result && <span className={`ml-1 ${resultColor(hand.result)}`}>{resultLabel(hand.result, hand.payout)}</span>}

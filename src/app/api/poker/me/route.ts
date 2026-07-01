@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Paramètres requis." }, { status: 400 });
     }
     const secret = await loadPokerSecret(code);
-    return NextResponse.json({ cards: secret.hole[playerId] ?? null });
+    return NextResponse.json(
+      { cards: secret.hole[playerId] ?? null },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? "Erreur serveur" }, { status: 500 });
   }
