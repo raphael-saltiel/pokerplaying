@@ -53,8 +53,9 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       return NextResponse.json({ error: res.reason }, { status: 409 });
     }
-    if (refund > 0) await adjustBalance(playerId, refund);
-    return NextResponse.json({ ok: true });
+    let balance: number | null = null;
+    if (refund > 0) balance = await adjustBalance(playerId, refund);
+    return NextResponse.json({ ok: true, balance: balance ?? undefined });
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? "Erreur serveur" }, { status: 500 });
   }

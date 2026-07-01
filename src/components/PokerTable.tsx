@@ -28,6 +28,38 @@ export function PokerTable({ code, state: raw }: { code: string; state: PokerSta
   const isMyTurn =
     state.phase === "playing" && state.toAct != null && state.seats[state.toAct]?.playerId === player?.id;
 
+  // Encaissement automatique de la cave quand on quitte la page (navigation
+  // SPA ou fermeture d'onglet) sans cliquer "Quitter la table" — évite que
+  // les jetons restent bloqués à la table.
+  const cashoutRef = useRef<{ code: string; playerId?: string; seated: boolean }>({
+    code,
+    seated: false,
+  });
+  cashoutRef.current = { code, playerId: player?.id, seated: mySeatIndex >= 0 };
+  useEffect(() => {
+    const cashOut = (beacon: boolean) => {
+      const { code, playerId, seated } = cashoutRef.current;
+      if (!seated || !playerId) return;
+      const body = JSON.stringify({ code, playerId });
+      if (beacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
+        navigator.sendBeacon("/api/poker/leave", new Blob([body], { type: "application/json" }));
+      } else {
+        fetch("/api/poker/leave", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+    const onUnload = () => cashOut(true);
+    window.addEventListener("beforeunload", onUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      cashOut(false); // navigation interne (retour au lobby)
+    };
+  }, []);
+
   // Récupère mes cartes privées à chaque nouvelle main.
   useEffect(() => {
     if (!player || !mySeat || !mySeat.hasCards) {
