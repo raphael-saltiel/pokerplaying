@@ -1,105 +1,136 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { colorOf } from "@/lib/games/roulette";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { colorOf, WHEEL_ORDER } from "@/lib/games/roulette";
 
-const CELL = 56; // largeur d'une case (px)
-const TARGET = 40; // index du numéro gagnant dans la bande
+const SIZE = 240;
+const CX = SIZE / 2;
+const CY = SIZE / 2;
+const R_OUT = 116;
+const R_IN = 60;
+const R_LABEL = 104;
+const STEP = 360 / WHEEL_ORDER.length;
 
-function pillClass(n: number): string {
+function polar(r: number, deg: number) {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
+}
+
+function sliceColor(n: number): string {
   const c = colorOf(n);
-  if (c === "green") return "bg-neon-green/80 text-black shadow-[0_0_10px_rgba(57,255,20,0.6)]";
-  if (c === "red") return "bg-[#ff1f5a] shadow-[0_0_10px_rgba(255,31,90,0.5)]";
-  return "bg-ink-700 border border-neon-cyan/25";
+  if (c === "green") return "#1eae4e";
+  if (c === "red") return "#c81e46";
+  return "#160c22";
 }
 
-// Bande de numéros se terminant par le résultat à l'index TARGET.
-function buildStrip(result: number, seed: number): number[] {
-  const arr: number[] = [];
-  for (let i = 0; i < TARGET + 8; i++) {
-    // pseudo-aléatoire déterministe (évite les soucis d'hydratation)
-    const r = (Math.sin((i + 1) * 99.7 + seed * 13.3) * 10000) % 1;
-    arr.push(Math.floor(Math.abs(r) * 37));
-  }
-  arr[TARGET] = result;
-  return arr;
-}
+export function RouletteWheel({ result, spinId }: { result: number | null; spinId: number }) {
+  const [rot, setRot] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const rotRef = useRef(0);
+  const lastSpin = useRef(-1);
 
-export function RouletteWheel({
-  result,
-  spinId,
-}: {
-  result: number | null;
-  spinId: number;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerW, setContainerW] = useState(0);
-  const [strip, setStrip] = useState<number[]>(() =>
-    buildStrip(result ?? 0, spinId)
-  );
-  const [offset, setOffset] = useState(0);
-  const [animate, setAnimate] = useState(false);
-
-  // Mesure la largeur du conteneur (pour centrer le numéro sous le repère).
-  useEffect(() => {
-    const measure = () => setContainerW(containerRef.current?.clientWidth ?? 0);
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+  // Géométrie statique de la roue (calculée une fois).
+  const { slices, labels } = useMemo(() => {
+    const slices = WHEEL_ORDER.map((n, i) => {
+      const start = i * STEP - STEP / 2;
+      const end = i * STEP + STEP / 2;
+      const p1 = polar(R_OUT, start);
+      const p2 = polar(R_OUT, end);
+      const q1 = polar(R_IN, end);
+      const q2 = polar(R_IN, start);
+      const d = `M${p1.x},${p1.y} A${R_OUT},${R_OUT} 0 0 1 ${p2.x},${p2.y} L${q1.x},${q1.y} A${R_IN},${R_IN} 0 0 0 ${q2.x},${q2.y} Z`;
+      return { d, fill: sliceColor(n) };
+    });
+    const labels = WHEEL_ORDER.map((n, i) => {
+      const p = polar(R_LABEL, i * STEP);
+      return { n, x: p.x, y: p.y, rot: i * STEP };
+    });
+    return { slices, labels };
   }, []);
 
-  // À chaque tirage : on régénère la bande et on lance l'animation.
+  // À chaque tirage : on fait tourner la roue pour amener le numéro en haut.
   useEffect(() => {
-    if (result == null || containerW === 0) return;
-    const newStrip = buildStrip(result, spinId);
-    setStrip(newStrip);
+    if (result == null) return;
+    const idx = WHEEL_ORDER.indexOf(result);
+    if (idx < 0) return;
+    const a = idx * STEP; // angle du numéro (0 = haut)
 
-    const center = containerW / 2;
-    const startOffset = center - CELL / 2; // 1re case centrée
-    const endOffset = center - (TARGET + 0.5) * CELL; // case gagnante centrée
+    if (lastSpin.current === -1) {
+      // premier rendu : on se positionne sans animation
+      const base = ((-a % 360) + 360) % 360;
+      rotRef.current = base;
+      setSpinning(false);
+      setRot(base);
+      lastSpin.current = spinId;
+      return;
+    }
+    if (lastSpin.current === spinId) return;
+    lastSpin.current = spinId;
 
-    setAnimate(false);
-    setOffset(startOffset);
-    // double rAF pour appliquer la position de départ avant la transition
-    const id = requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        setAnimate(true);
-        setOffset(endOffset);
-      })
-    );
-    return () => cancelAnimationFrame(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spinId, containerW]);
+    // 6 tours + ajustement pour finir pile sur le numéro (mod 360 = -a)
+    const target = rotRef.current + 360 * 6;
+    const adjust = ((((-a - target) % 360) + 360) % 360);
+    const next = target + adjust;
+    rotRef.current = next;
+    setSpinning(true);
+    setRot(next);
+  }, [spinId, result]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative mb-3 h-16 overflow-hidden rounded-xl border border-neon-cyan/40 bg-ink-900/60 shadow-[0_0_22px_rgba(0,240,255,0.25),inset_0_0_18px_rgba(255,0,230,0.1)]"
-    >
-      {/* Repère central */}
-      <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-full w-0.5 -translate-x-1/2 bg-neon-magenta shadow-[0_0_10px_var(--neon-magenta)]" />
-      <div className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 border-x-8 border-t-8 border-x-transparent border-t-neon-magenta" />
+    <div className="relative mx-auto mb-3" style={{ width: SIZE, height: SIZE }}>
+      {/* Halo néon */}
+      <div className="pointer-events-none absolute inset-2 rounded-full shadow-[0_0_40px_rgba(0,240,255,0.35),inset_0_0_30px_rgba(255,0,230,0.2)]" />
 
+      {/* Rotor */}
       <div
-        className={`flex h-full items-center ${animate ? "wheel-spinning" : ""}`}
         style={{
-          transform: `translateX(${offset}px)`,
-          transition: animate
-            ? "transform 4.2s cubic-bezier(0.12, 0.8, 0.2, 1)"
-            : "none",
+          transform: `rotate(${rot}deg)`,
+          transformOrigin: "50% 50%",
+          transition: spinning ? "transform 4.6s cubic-bezier(0.16, 0.7, 0.1, 1)" : "none",
         }}
       >
-        {strip.map((n, i) => (
-          <div
-            key={i}
-            className={`flex h-12 shrink-0 items-center justify-center rounded-md font-bold text-white ${pillClass(
-              n
-            )}`}
-            style={{ width: CELL - 6, margin: "0 3px" }}
-          >
-            {n}
-          </div>
-        ))}
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+          <circle cx={CX} cy={CY} r={R_OUT + 4} fill="#05010f" stroke="url(#rim)" strokeWidth="3" />
+          <defs>
+            <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#00f0ff" />
+              <stop offset="100%" stopColor="#ff00e6" />
+            </linearGradient>
+          </defs>
+          {slices.map((s, i) => (
+            <path key={i} d={s.d} fill={s.fill} stroke="#e3b341" strokeWidth="0.6" />
+          ))}
+          {labels.map((l, i) => (
+            <text
+              key={i}
+              x={l.x}
+              y={l.y}
+              fill="#fff"
+              fontSize="9"
+              fontWeight="700"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              transform={`rotate(${l.rot} ${l.x} ${l.y})`}
+            >
+              {l.n}
+            </text>
+          ))}
+          <circle cx={CX} cy={CY} r={R_IN} fill="#0a0418" stroke="url(#rim)" strokeWidth="2" />
+        </svg>
+      </div>
+
+      {/* Repère + bille (fixes) */}
+      <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 border-x-[9px] border-t-[14px] border-x-transparent border-t-neon-yellow drop-shadow-[0_0_6px_var(--neon-yellow)]" />
+      <div className="pointer-events-none absolute left-1/2 top-[14px] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_#fff]" />
+
+      {/* Résultat au centre */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span
+          className="stat text-3xl font-black"
+          style={{ color: result == null ? "rgba(255,255,255,0.3)" : sliceColor(result) === "#160c22" ? "#fff" : sliceColor(result) }}
+        >
+          {result ?? "–"}
+        </span>
       </div>
     </div>
   );

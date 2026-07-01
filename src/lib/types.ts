@@ -22,6 +22,8 @@ export interface TableRow {
 
 export type RouletteBetKind =
   | "number"
+  | "split" // à cheval : 2 numéros adjacents
+  | "corner" // carré : 4 numéros
   | "red"
   | "black"
   | "even"
@@ -37,6 +39,7 @@ export interface RouletteBet {
   name: string;
   kind: RouletteBetKind;
   value?: number; // numéro (0-36) ou index de douzaine/colonne (1-3)
+  numbers?: number[]; // pour split (2) / corner (4)
   amount: number;
 }
 

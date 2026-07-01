@@ -24,6 +24,10 @@ export function betMultiplier(bet: RouletteBet, result: number): number {
   switch (bet.kind) {
     case "number":
       return 35;
+    case "split":
+      return 17;
+    case "corner":
+      return 8;
     case "dozen":
     case "column":
       return 2;
@@ -34,12 +38,18 @@ export function betMultiplier(bet: RouletteBet, result: number): number {
 
 export function betWins(bet: RouletteBet, result: number): boolean {
   if (result === 0) {
-    // Seul un pari "plein" sur 0 gagne.
-    return bet.kind === "number" && bet.value === 0;
+    // Sur 0 : seuls le plein sur 0, ou un cheval/carré incluant le 0, gagnent.
+    if (bet.kind === "number") return bet.value === 0;
+    if (bet.kind === "split" || bet.kind === "corner")
+      return (bet.numbers ?? []).includes(0);
+    return false;
   }
   switch (bet.kind) {
     case "number":
       return bet.value === result;
+    case "split":
+    case "corner":
+      return (bet.numbers ?? []).includes(result);
     case "red":
       return colorOf(result) === "red";
     case "black":
@@ -110,10 +120,47 @@ export function resolveRoulette(
   return { state: newState, credits, result };
 }
 
+// Ordre des cases sur la roue européenne (sens horaire depuis le 0).
+export const WHEEL_ORDER = [
+  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24,
+  16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26,
+];
+
+const columnOf = (n: number) => Math.ceil(n / 3); // groupe de 3 (colonne visuelle)
+
+/** Deux numéros forment-ils un "cheval" valide (adjacents sur le tapis) ? */
+export function isValidSplit(nums: number[]): boolean {
+  if (nums.length !== 2) return false;
+  const [a, b] = [...nums].sort((x, y) => x - y);
+  if (a < 1 || b > 36 || a === b) return false;
+  if (b - a === 3) return true; // horizontal (même rangée, colonnes voisines)
+  if (b - a === 1 && columnOf(a) === columnOf(b)) return true; // vertical
+  return false;
+}
+
+/** Quatre numéros forment-ils un "carré" valide (bloc 2×2) ? */
+export function isValidCorner(nums: number[]): boolean {
+  if (nums.length !== 4) return false;
+  const s = [...nums].sort((x, y) => x - y);
+  const m = s[0];
+  return (
+    m >= 1 &&
+    m % 3 !== 0 &&
+    s[1] === m + 1 &&
+    s[2] === m + 3 &&
+    s[3] === m + 4 &&
+    s[3] <= 36
+  );
+}
+
 export function betLabel(bet: RouletteBet): string {
   switch (bet.kind) {
     case "number":
       return `N°${bet.value}`;
+    case "split":
+      return `Cheval ${(bet.numbers ?? []).join("-")}`;
+    case "corner":
+      return `Carré ${(bet.numbers ?? []).join("-")}`;
     case "red":
       return "Rouge";
     case "black":

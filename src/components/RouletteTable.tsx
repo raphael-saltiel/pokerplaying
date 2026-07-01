@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { usePlayer } from "@/components/PlayerProvider";
 import { post } from "@/lib/client";
 import { formatChips } from "@/lib/format";
@@ -72,15 +72,19 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
   // Montant que J'AI empilé sur chaque case (pour l'indicateur de mise rapide).
   const stakeByCell: Record<string, number> = {};
   for (const b of myBets) {
-    const key =
-      b.kind === "number" || b.kind === "dozen" || b.kind === "column"
-        ? `${b.kind}:${b.value}`
-        : b.kind;
+    let key: string;
+    if (b.kind === "number" || b.kind === "dozen" || b.kind === "column") {
+      key = `${b.kind}:${b.value}`;
+    } else if (b.kind === "split" || b.kind === "corner") {
+      key = `${b.kind}:${[...(b.numbers ?? [])].sort((a, c) => a - c).join("-")}`;
+    } else {
+      key = b.kind;
+    }
     stakeByCell[key] = (stakeByCell[key] ?? 0) + b.amount;
   }
   const cellStake = (k: string) => stakeByCell[k] ?? 0;
 
-  async function placeBet(kind: RouletteBetKind, value?: number) {
+  async function placeBet(kind: RouletteBetKind, value?: number, numbers?: number[]) {
     if (!player || !betting || busy) return;
     setBusy(true);
     setErr(null);
@@ -90,6 +94,7 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
       name: player.name,
       kind,
       value,
+      numbers,
       amount: chip,
     });
     if (!ok) setErr(data.error ?? "Mise refusée.");
@@ -159,6 +164,7 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
           busy={busy}
           placeBet={placeBet}
           cellStake={cellStake}
+          highlight={state.phase === "result" ? state.lastResult : null}
         />
 
         {err && <p className="mt-3 text-center text-sm text-red-400">{err}</p>}
@@ -277,110 +283,201 @@ function BetList({ bets, meId }: { bets: RouletteBet[]; meId?: string }) {
   );
 }
 
-// Tapis de roulette européenne : 0 + 3×12 numéros, colonnes 2:1, douzaines,
-// chances simples. Disposition classique.
+// Géométrie du tapis (positionnement pixel pour placer les zones cheval/carré).
+const ZW = 40, CW = 46, CH = 40, GAP = 3, DH = 34, SH = 34;
+const X0 = ZW + GAP;
+const NUM_W = 12 * CW;
+const TOTAL_W = X0 + NUM_W + ZW;
+const DOZ_TOP = 3 * CH + GAP;
+const SIMPLE_TOP = DOZ_TOP + DH + GAP;
+const TOTAL_H = SIMPLE_TOP + SH;
+const val = (r: number, c: number) => 3 * (c + 1) - r; // valeur d'une case
+const keyOf = (nums: number[]) => [...nums].sort((a, b) => a - b).join("-");
+
+interface Zone {
+  left: number;
+  top: number;
+  w: number;
+  h: number;
+  kind: "split" | "corner";
+  numbers: number[];
+}
+
+function buildZones(): Zone[] {
+  const zones: Zone[] = [];
+  // Chevaux verticaux (entre deux rangées d'une même colonne)
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 12; c++) {
+      const cx = X0 + c * CW + CW / 2;
+      zones.push({ left: cx - 15, top: (r + 1) * CH - 7, w: 30, h: 14, kind: "split", numbers: [val(r, c), val(r + 1, c)] });
+    }
+  }
+  // Chevaux horizontaux (entre deux colonnes d'une même rangée)
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 11; c++) {
+      const bx = X0 + (c + 1) * CW;
+      const cy = r * CH + CH / 2;
+      zones.push({ left: bx - 7, top: cy - 13, w: 14, h: 26, kind: "split", numbers: [val(r, c), val(r, c + 1)] });
+    }
+  }
+  // Carrés (coin de 4 numéros)
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 11; c++) {
+      const x = X0 + (c + 1) * CW;
+      const y = (r + 1) * CH;
+      zones.push({
+        left: x - 9, top: y - 9, w: 18, h: 18, kind: "corner",
+        numbers: [val(r, c), val(r + 1, c), val(r, c + 1), val(r + 1, c + 1)],
+      });
+    }
+  }
+  return zones;
+}
+
+const ZONES = buildZones();
+
+// Tapis de roulette européenne (disposition classique) + mises à cheval/carré.
 function RouletteFelt({
   betting,
   busy,
   placeBet,
   cellStake,
+  highlight,
 }: {
   betting: boolean;
   busy: boolean;
-  placeBet: (kind: RouletteBetKind, value?: number) => void;
+  placeBet: (kind: RouletteBetKind, value?: number, numbers?: number[]) => void;
   cellStake: (k: string) => number;
+  highlight: number | null;
 }) {
   const d = !betting || busy;
-  const cols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  const rows = [0, 1, 2]; // haut, milieu, bas
   const numBg = (n: number) => (colorOf(n) === "red" ? "bg-[#e01e5a]" : "bg-ink-800");
+  const abs = (left: number, top: number, w: number, h: number) => ({
+    position: "absolute" as const,
+    left,
+    top,
+    width: w,
+    height: h,
+  });
+
+  const numberCells: ReactElement[] = [];
+  for (let c = 0; c < 12; c++) {
+    for (let r = 0; r < 3; r++) {
+      const n = val(r, c);
+      const hot = highlight === n;
+      numberCells.push(
+        <button
+          key={n}
+          disabled={d}
+          onClick={() => placeBet("number", n)}
+          style={abs(X0 + c * CW, r * CH, CW - GAP, CH - GAP)}
+          className={`relative flex items-center justify-center rounded text-xs font-bold text-white transition hover:brightness-150 disabled:opacity-50 ${numBg(
+            n
+          )} ${hot ? "z-20 ring-2 ring-neon-yellow shadow-glow-yellow animate-result" : ""}`}
+        >
+          {n}
+          <ChipBadge amount={cellStake(`number:${n}`)} />
+        </button>
+      );
+    }
+  }
 
   return (
-    <div className="mb-3 overflow-x-auto pb-1">
-      <div
-        className="grid gap-1"
-        style={{
-          gridTemplateColumns: "2.4rem repeat(12, minmax(1.7rem, 1fr)) 2.8rem",
-          minWidth: "580px",
-        }}
-      >
-        {/* Zéro */}
-        <button
-          disabled={d}
-          onClick={() => placeBet("number", 0)}
-          style={{ gridColumn: 1, gridRow: "1 / span 3" }}
-          className="relative flex items-center justify-center rounded bg-neon-green/80 font-bold text-black hover:brightness-110 disabled:opacity-50"
-        >
-          0
-          <ChipBadge amount={cellStake("number:0")} />
-        </button>
+    <>
+      <div className="mb-2 overflow-x-auto pb-1">
+        <div className="relative" style={{ width: TOTAL_W, height: TOTAL_H, minWidth: TOTAL_W }}>
+          {/* Zéro */}
+          <button
+            disabled={d}
+            onClick={() => placeBet("number", 0)}
+            style={abs(0, 0, ZW, 3 * CH - GAP)}
+            className={`relative flex items-center justify-center rounded bg-neon-green/80 font-bold text-black hover:brightness-110 disabled:opacity-50 ${
+              highlight === 0 ? "z-20 ring-2 ring-neon-yellow shadow-glow-yellow animate-result" : ""
+            }`}
+          >
+            0
+            <ChipBadge amount={cellStake("number:0")} />
+          </button>
 
-        {/* Numéros 1-36 */}
-        {cols.flatMap((c) =>
-          rows.map((r) => {
-            const n = 3 * (c + 1) - r;
+          {/* Numéros */}
+          {numberCells}
+
+          {/* Colonnes 2:1 */}
+          {[0, 1, 2].map((r) => {
+            const colVal = 3 - r;
             return (
               <button
-                key={n}
+                key={`col-${colVal}`}
                 disabled={d}
-                onClick={() => placeBet("number", n)}
-                style={{ gridColumn: c + 2, gridRow: r + 1 }}
-                className={`relative flex h-9 items-center justify-center rounded text-xs font-bold text-white transition hover:brightness-150 disabled:opacity-50 ${numBg(
-                  n
-                )}`}
+                onClick={() => placeBet("column", colVal)}
+                style={abs(X0 + NUM_W, r * CH, ZW, CH - GAP)}
+                className="relative flex items-center justify-center rounded border border-neon-cyan/30 bg-ink-600 text-[10px] font-bold text-neon-cyan hover:brightness-125 disabled:opacity-50"
               >
-                {n}
-                <ChipBadge amount={cellStake(`number:${n}`)} />
+                2:1
+                <ChipBadge amount={cellStake(`column:${colVal}`)} />
               </button>
             );
-          })
-        )}
+          })}
 
-        {/* Colonnes 2:1 */}
-        {rows.map((r) => {
-          const colVal = 3 - r; // haut->3, milieu->2, bas->1
-          return (
-            <button
-              key={`col-${colVal}`}
-              disabled={d}
-              onClick={() => placeBet("column", colVal)}
-              style={{ gridColumn: 14, gridRow: r + 1 }}
-              className="relative flex items-center justify-center rounded border border-neon-cyan/30 bg-ink-600 text-[10px] font-bold text-neon-cyan hover:brightness-125 disabled:opacity-50"
-            >
-              2:1
-              <ChipBadge amount={cellStake(`column:${colVal}`)} />
-            </button>
-          );
-        })}
+          {/* Douzaines */}
+          {[1, 2, 3].map((dz) => (
+            <FeltCell
+              key={`doz-${dz}`}
+              style={abs(X0 + (dz - 1) * 4 * CW, DOZ_TOP, 4 * CW - GAP, DH)}
+              label={`${dz === 1 ? "1re" : dz + "e"} DOUZAINE`}
+              d={d}
+              onClick={() => placeBet("dozen", dz)}
+              stake={cellStake(`dozen:${dz}`)}
+            />
+          ))}
 
-        {/* Douzaines */}
-        <FeltCell col="2 / span 4" row={4} label="1re DOUZAINE" d={d} onClick={() => placeBet("dozen", 1)} stake={cellStake("dozen:1")} />
-        <FeltCell col="6 / span 4" row={4} label="2e DOUZAINE" d={d} onClick={() => placeBet("dozen", 2)} stake={cellStake("dozen:2")} />
-        <FeltCell col="10 / span 4" row={4} label="3e DOUZAINE" d={d} onClick={() => placeBet("dozen", 3)} stake={cellStake("dozen:3")} />
+          {/* Chances simples */}
+          <FeltCell style={abs(X0 + 0 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="1-18" d={d} onClick={() => placeBet("low")} stake={cellStake("low")} />
+          <FeltCell style={abs(X0 + 2 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="PAIR" d={d} onClick={() => placeBet("even")} stake={cellStake("even")} />
+          <FeltCell style={abs(X0 + 4 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="ROUGE" d={d} onClick={() => placeBet("red")} stake={cellStake("red")} cls="bg-[#e01e5a]" />
+          <FeltCell style={abs(X0 + 6 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="NOIR" d={d} onClick={() => placeBet("black")} stake={cellStake("black")} cls="bg-ink-900 border border-white/25" />
+          <FeltCell style={abs(X0 + 8 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="IMPAIR" d={d} onClick={() => placeBet("odd")} stake={cellStake("odd")} />
+          <FeltCell style={abs(X0 + 10 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="19-36" d={d} onClick={() => placeBet("high")} stake={cellStake("high")} />
 
-        {/* Chances simples */}
-        <FeltCell col="2 / span 2" row={5} label="1-18" d={d} onClick={() => placeBet("low")} stake={cellStake("low")} />
-        <FeltCell col="4 / span 2" row={5} label="PAIR" d={d} onClick={() => placeBet("even")} stake={cellStake("even")} />
-        <FeltCell col="6 / span 2" row={5} label="ROUGE" d={d} onClick={() => placeBet("red")} stake={cellStake("red")} cls="bg-[#e01e5a]" />
-        <FeltCell col="8 / span 2" row={5} label="NOIR" d={d} onClick={() => placeBet("black")} stake={cellStake("black")} cls="bg-ink-900 border border-white/25" />
-        <FeltCell col="10 / span 2" row={5} label="IMPAIR" d={d} onClick={() => placeBet("odd")} stake={cellStake("odd")} />
-        <FeltCell col="12 / span 2" row={5} label="19-36" d={d} onClick={() => placeBet("high")} stake={cellStake("high")} />
+          {/* Zones cheval / carré (au-dessus des cases) */}
+          {ZONES.map((z, i) => {
+            const stake = cellStake(`${z.kind}:${keyOf(z.numbers)}`);
+            return (
+              <button
+                key={i}
+                disabled={d}
+                title={`${z.kind === "split" ? "Cheval 17:1" : "Carré 8:1"} · ${z.numbers.join("-")}`}
+                onClick={() => placeBet(z.kind, undefined, z.numbers)}
+                style={{ ...abs(z.left, z.top, z.w, z.h), zIndex: 15 }}
+                className="rounded-sm transition hover:bg-neon-cyan/40 hover:ring-1 hover:ring-neon-cyan disabled:pointer-events-none"
+              >
+                {stake > 0 && (
+                  <span className="absolute left-1/2 top-1/2 z-10 flex h-4 min-w-[1rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-neon-yellow px-1 text-[8px] font-bold text-black shadow-[0_0_6px_rgba(244,255,0,0.8)]">
+                    {formatChips(stake)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
+      <p className="mb-3 text-center text-[10px] text-white/45">
+        Astuce : clique <span className="text-neon-cyan">entre 2 cases</span> = cheval (17:1) ·{" "}
+        <span className="text-neon-cyan">au coin de 4</span> = carré (8:1)
+      </p>
+    </>
   );
 }
 
 function FeltCell({
-  col,
-  row,
+  style,
   label,
   d,
   onClick,
   stake,
   cls,
 }: {
-  col: string;
-  row: number;
+  style: CSSProperties;
   label: string;
   d: boolean;
   onClick: () => void;
@@ -391,8 +488,8 @@ function FeltCell({
     <button
       disabled={d}
       onClick={onClick}
-      style={{ gridColumn: col, gridRow: row }}
-      className={`relative flex h-9 items-center justify-center rounded text-[10px] font-bold uppercase tracking-wide text-white transition hover:brightness-125 disabled:opacity-50 ${
+      style={style}
+      className={`relative flex items-center justify-center rounded text-[10px] font-bold uppercase tracking-wide text-white transition hover:brightness-125 disabled:opacity-50 ${
         cls ?? "bg-ink-700 border border-neon-cyan/25"
       }`}
     >

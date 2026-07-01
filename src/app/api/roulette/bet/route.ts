@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withTable, adjustBalance, getPlayer } from "@/lib/gameStore";
-import { ROULETTE_BET_MS } from "@/lib/games/roulette";
+import { ROULETTE_BET_MS, isValidSplit, isValidCorner } from "@/lib/games/roulette";
 import type { RouletteBetKind } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const KINDS: RouletteBetKind[] = [
   "number",
+  "split",
+  "corner",
   "red",
   "black",
   "even",
@@ -24,13 +26,16 @@ function validValue(kind: RouletteBetKind, value: any): boolean {
   return true; // chances simples : pas de valeur
 }
 
-// POST /api/roulette/bet { code, playerId, name, kind, value?, amount }
+// POST /api/roulette/bet { code, playerId, name, kind, value?, numbers?, amount }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const code = String(body.code ?? "").toUpperCase();
     const { playerId, name, kind } = body;
     const value = body.value;
+    const numbers: number[] = Array.isArray(body.numbers)
+      ? body.numbers.map((n: any) => Math.floor(Number(n)))
+      : [];
     const amount = Math.floor(Number(body.amount));
 
     if (!code || !playerId || !name) {
@@ -39,7 +44,16 @@ export async function POST(req: NextRequest) {
     if (!KINDS.includes(kind)) {
       return NextResponse.json({ error: "Type de mise invalide." }, { status: 400 });
     }
-    if (!validValue(kind, value)) {
+    // Validation stricte (anti-triche) des cheval/carré, sinon valeur simple.
+    if (kind === "split") {
+      if (!isValidSplit(numbers)) {
+        return NextResponse.json({ error: "Cheval invalide." }, { status: 400 });
+      }
+    } else if (kind === "corner") {
+      if (!isValidCorner(numbers)) {
+        return NextResponse.json({ error: "Carré invalide." }, { status: 400 });
+      }
+    } else if (!validValue(kind, value)) {
       return NextResponse.json({ error: "Valeur de mise invalide." }, { status: 400 });
     }
     if (!Number.isInteger(amount) || amount <= 0) {
@@ -60,7 +74,11 @@ export async function POST(req: NextRequest) {
         playerId,
         name: String(name).slice(0, 20),
         kind,
-        ...(value !== undefined ? { value } : {}),
+        ...(kind === "split" || kind === "corner"
+          ? { numbers }
+          : value !== undefined
+          ? { value }
+          : {}),
         amount,
       };
       const players = (t.state.players ?? []).some((p: any) => p.id === playerId)
