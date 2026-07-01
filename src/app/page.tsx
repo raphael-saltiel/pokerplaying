@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Gate } from "@/components/Gate";
 import { Slots } from "@/components/Slots";
+import { ScratchCards } from "@/components/ScratchCards";
 import { usePlayer } from "@/components/PlayerProvider";
 import type { GameType } from "@/lib/types";
 
@@ -121,6 +122,9 @@ function Lobby() {
           </p>
         </div>
       </div>
+
+      {/* Tickets à gratter */}
+      <ScratchCards />
     </div>
   );
 }
