@@ -7,6 +7,7 @@ import { Gate } from "@/components/Gate";
 import { Slots } from "@/components/Slots";
 import { ScratchCards } from "@/components/ScratchCards";
 import { Intro } from "@/components/Intro";
+import { Logo } from "@/components/Logo";
 import { usePlayer } from "@/components/PlayerProvider";
 import type { GameType } from "@/lib/types";
 
@@ -57,6 +58,7 @@ function Lobby() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <section className="mb-8 text-center">
+        <Logo size={92} className="mx-auto mb-3 drop-shadow-[0_0_18px_rgba(0,240,255,0.5)]" />
         <h1 className="font-display text-4xl font-black tracking-widest sm:text-6xl">
           <span className="glitch" data-text="CASINO ROYALE">
             CASINO ROYALE

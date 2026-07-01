@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "@/components/PlayerProvider";
 import { formatChips } from "@/lib/format";
+import { Logo } from "@/components/Logo";
 
 export function Header() {
   const { player, logout } = usePlayer();
@@ -27,9 +28,13 @@ export function Header() {
 
   return (
     <header className="flex items-center justify-between border-b border-neon-cyan/25 px-4 py-3 shadow-[0_6px_20px_-12px_rgba(0,240,255,0.6)] sm:px-6">
-      <Link href="/" className="font-display text-lg font-black tracking-widest sm:text-2xl">
-        <span className="glitch" data-text="CASINO ROYALE">
+      <Link href="/" className="flex items-center gap-2 font-display text-lg font-black tracking-widest sm:text-2xl">
+        <Logo size={36} className="shrink-0" />
+        <span className="glitch hidden sm:inline" data-text="CASINO ROYALE">
           CASINO ROYALE
+        </span>
+        <span className="glitch sm:hidden" data-text="C·R">
+          C·R
         </span>
       </Link>
       {player && (

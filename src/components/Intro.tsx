@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/Logo";
 
 // Intro "boot" affichée une fois par session au chargement du lobby.
 export function Intro() {
@@ -22,6 +23,7 @@ export function Intro() {
 
   return (
     <div className="intro-overlay">
+      <Logo size={110} className="drop-shadow-[0_0_22px_rgba(0,240,255,0.6)]" />
       <div className="intro-title">
         <span className="glitch" data-text="CASINO ROYALE">
           CASINO ROYALE
