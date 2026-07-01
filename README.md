@@ -95,10 +95,12 @@ N'importe quel joueur peut lancer la roue une fois les mises placées.
 
 **Blackjack**
 
-- Le croupier tire jusqu'à 17 (reste sur tout 17).
+- Le croupier tire jusqu'à 17 (reste sur tout 17) et vérifie son blackjack (peek).
 - Le blackjack (As + figure) paie **3 : 2**.
-- Actions : **Tirer**, **Rester**, **Doubler** (le split n'est pas géré).
-- Chaque joueur joue son tour ; le tour actif est mis en évidence.
+- Actions complètes : **Tirer**, **Rester**, **Doubler**, **Séparer** (split,
+  jusqu'à 4 mains, split d'As à une carte), **Abandonner** (surrender, rend la
+  moitié), et **Assurance** quand le croupier montre un As (paie 2 : 1).
+- Chaque joueur joue chacune de ses mains ; le tour actif est mis en évidence.
 
 **Machine à sous**
 
