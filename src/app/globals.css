@@ -4,90 +4,331 @@
 
 :root {
   color-scheme: dark;
+  --neon-cyan: #00f0ff;
+  --neon-magenta: #ff00e6;
+  --neon-yellow: #f4ff00;
+  --neon-green: #39ff14;
+  /* Découpe angulaire type HUD */
+  --hud: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+}
+
+html {
+  font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 50% -10%, #0e8347 0%, #073d22 55%, #04250f 100%);
+  position: relative;
   min-height: 100vh;
-  color: #f5f2e8;
+  color: #e6f7ff;
+  background:
+    radial-gradient(1100px 620px at 50% -12%, #2a0f4d 0%, #120a24 45%, #05010f 100%),
+    #05010f;
+  overflow-x: hidden;
+}
+
+/* Grille holographique animée (transform GPU, faible coût CPU) */
+body::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: -50%;
+  height: 200%;
+  z-index: -2;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 230, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  animation: grid-move 14s linear infinite;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 40%, transparent 100%);
+}
+
+/* Scanlines en overlay */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.16) 0,
+    rgba(0, 0, 0, 0.16) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+}
+
+@keyframes grid-move {
+  from { transform: translateY(0); }
+  to { transform: translateY(44px); }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-semibold
-           transition active:scale-95 disabled:opacity-40 disabled:active:scale-100
-           disabled:cursor-not-allowed;
+    @apply relative inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold
+           uppercase tracking-wider transition-all active:scale-95
+           disabled:opacity-40 disabled:active:scale-100 disabled:cursor-not-allowed;
+    clip-path: var(--hud);
+    font-family: var(--font-display), sans-serif;
   }
   .btn-gold {
-    @apply btn bg-gold text-black shadow-glow hover:bg-gold-light;
+    @apply btn text-black;
+    background: linear-gradient(135deg, #00f0ff, #00aeb8);
+    /* drop-shadow suit la découpe clip-path (contrairement à box-shadow) */
+    filter: drop-shadow(0 0 7px rgba(0, 240, 255, 0.55));
+  }
+  .btn-gold:hover:not(:disabled) {
+    filter: brightness(1.15) drop-shadow(0 0 11px rgba(0, 240, 255, 0.85));
   }
   .btn-dark {
-    @apply btn bg-black/40 text-gold border border-gold/40 hover:bg-black/60;
+    @apply btn text-neon-cyan;
+    background: rgba(0, 240, 255, 0.06);
+    border: 1px solid rgba(0, 240, 255, 0.5);
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+  }
+  .btn-dark:hover:not(:disabled) {
+    background: rgba(0, 240, 255, 0.14);
+    filter: drop-shadow(0 0 9px rgba(0, 240, 255, 0.5));
   }
   .btn-ghost {
-    @apply btn bg-white/5 text-white/90 border border-white/15 hover:bg-white/10;
+    @apply btn text-neon-magenta;
+    background: rgba(255, 0, 230, 0.05);
+    border: 1px solid rgba(255, 0, 230, 0.45);
+    text-shadow: 0 0 8px rgba(255, 0, 230, 0.5);
   }
+  .btn-ghost:hover:not(:disabled) {
+    background: rgba(255, 0, 230, 0.13);
+    filter: drop-shadow(0 0 9px rgba(255, 0, 230, 0.5));
+  }
+  .btn:hover:not(:disabled) {
+    animation: btn-glitch 0.35s steps(2) 1;
+  }
+
   .card-surface {
-    @apply rounded-2xl border border-gold/25 bg-black/30 backdrop-blur-sm shadow-xl;
+    @apply relative;
+    background: linear-gradient(160deg, rgba(26, 15, 51, 0.72), rgba(10, 4, 24, 0.82));
+    border: 1px solid rgba(0, 240, 255, 0.28);
+    clip-path: var(--hud);
+    backdrop-filter: blur(6px);
+    box-shadow:
+      inset 0 0 26px rgba(255, 0, 230, 0.06),
+      0 0 22px rgba(0, 240, 255, 0.12);
   }
+
   .chip-input {
-    @apply rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-white
-           outline-none focus:border-gold;
+    @apply px-3 py-2 text-neon-cyan outline-none;
+    background: rgba(5, 1, 15, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    clip-path: var(--hud);
+    font-family: var(--font-mono), monospace;
+  }
+  .chip-input::placeholder {
+    color: rgba(0, 240, 255, 0.4);
+  }
+  .chip-input:focus {
+    border-color: var(--neon-magenta);
+    box-shadow: 0 0 14px rgba(255, 0, 230, 0.4);
+  }
+
+  /* Chiffres / stats en mono lumineux */
+  .stat {
+    font-family: var(--font-mono), monospace;
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.55);
   }
 }
 
-/* Carte à jouer */
+/* ---------- Titre glitch ---------- */
+.glitch {
+  position: relative;
+  display: inline-block;
+  color: #eafcff;
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.55);
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  clip-path: inset(0 0 0 0);
+}
+.glitch::before {
+  color: var(--neon-magenta);
+  animation: glitch-a 3.2s infinite steps(1);
+}
+.glitch::after {
+  color: var(--neon-cyan);
+  animation: glitch-b 2.7s infinite steps(1);
+}
+@keyframes glitch-a {
+  0%, 92%, 100% { transform: translate(0); opacity: 0; }
+  93% { transform: translate(-2px, 1px); opacity: 0.8; }
+  96% { transform: translate(2px, -1px); opacity: 0.7; }
+}
+@keyframes glitch-b {
+  0%, 90%, 100% { transform: translate(0); opacity: 0; }
+  91% { transform: translate(2px, 1px); opacity: 0.7; }
+  97% { transform: translate(-2px, 0); opacity: 0.8; }
+}
+
+/* ---------- Glitch bouton / carte au survol ---------- */
+@keyframes btn-glitch {
+  0% { transform: translate(0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-1px, 0); }
+  100% { transform: translate(0); }
+}
+.glitch-hover:hover {
+  animation: card-glitch 0.4s steps(2) 1;
+}
+@keyframes card-glitch {
+  0% { transform: translate(0); filter: none; }
+  30% { transform: translate(-2px, 1px); filter: drop-shadow(2px 0 var(--neon-magenta)) drop-shadow(-2px 0 var(--neon-cyan)); }
+  60% { transform: translate(2px, -1px); }
+  100% { transform: translate(0); filter: none; }
+}
+
+/* ---------- Cartes à jouer ---------- */
 .playing-card {
   width: 52px;
   height: 74px;
-  border-radius: 8px;
-  background: #fffdf7;
-  color: #111;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  background: linear-gradient(160deg, #f4fbff, #d9ecff);
+  color: #0a0a1a;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 240, 255, 0.35);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 4px 6px;
   font-weight: 700;
+  font-family: var(--font-mono), monospace;
   position: relative;
 }
 .playing-card.red {
-  color: #c81e1e;
+  color: #ff1f6b;
 }
 .playing-card.back {
-  background: repeating-linear-gradient(45deg, #7a1020, #7a1020 6px, #54101a 6px, #54101a 12px);
-  border: 2px solid #e3b341;
+  background:
+    repeating-linear-gradient(45deg, rgba(0, 240, 255, 0.25) 0 6px, transparent 6px 12px),
+    repeating-linear-gradient(-45deg, rgba(255, 0, 230, 0.22) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, #14082a, #23103f);
+  border: 1px solid rgba(0, 240, 255, 0.6);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.4), inset 0 0 12px rgba(255, 0, 230, 0.25);
 }
 
+/* ---------- Keyframes d'animation ---------- */
 @keyframes pop {
   0% { transform: scale(0.7); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
-.animate-pop {
-  animation: pop 0.25s ease-out;
+.animate-pop { animation: pop 0.25s ease-out; }
+
+@keyframes deal {
+  0% { transform: translateY(-30px) rotateZ(-8deg); opacity: 0; filter: brightness(2.2) drop-shadow(0 0 10px var(--neon-cyan)); }
+  55% { filter: brightness(1.4) drop-shadow(0 0 8px var(--neon-cyan)); }
+  100% { transform: translateY(0) rotateZ(0); opacity: 1; filter: none; }
 }
+.animate-deal { animation: deal 0.34s cubic-bezier(0.2, 0.9, 0.2, 1); }
+
+@keyframes flip-reveal {
+  0% { transform: rotateY(90deg) scale(0.9); filter: brightness(2.4); }
+  100% { transform: rotateY(0) scale(1); filter: none; }
+}
+.animate-flip { animation: flip-reveal 0.4s ease-out; }
 
 @keyframes spin-num {
   0% { transform: translateY(-6px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
 }
-.animate-spin-num {
-  animation: spin-num 0.4s ease-out;
-}
+.animate-spin-num { animation: spin-num 0.4s ease-out; }
 
-@keyframes deal {
-  0% { transform: translateY(-26px) rotate(-6deg); opacity: 0; }
-  100% { transform: translateY(0) rotate(0); opacity: 1; }
-}
-.animate-deal {
-  animation: deal 0.32s ease-out;
-}
-
+/* Gain : pulse néon cyan -> jaune */
 @keyframes balance-flash {
-  0% { color: #f5d77a; text-shadow: 0 0 14px rgba(227, 179, 65, 0.9); transform: scale(1.18); }
-  100% { color: inherit; text-shadow: none; transform: scale(1); }
+  0% { color: var(--neon-yellow); text-shadow: 0 0 22px var(--neon-yellow), 0 0 8px #fff; transform: scale(1.28); }
+  60% { color: var(--neon-cyan); text-shadow: 0 0 16px var(--neon-cyan); }
+  100% { color: inherit; text-shadow: 0 0 10px rgba(0, 240, 255, 0.5); transform: scale(1); }
 }
-.balance-flash {
-  animation: balance-flash 0.9s ease-out;
+.balance-flash { animation: balance-flash 0.95s ease-out; }
+
+/* Anneau de tour actif (poker/blackjack) */
+@keyframes turn-ring {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 240, 255, 0.5), inset 0 0 8px rgba(0, 240, 255, 0.2); }
+  50% { box-shadow: 0 0 26px rgba(0, 240, 255, 0.95), inset 0 0 14px rgba(0, 240, 255, 0.4); }
+}
+.turn-active { animation: turn-ring 1.1s ease-in-out infinite; border-color: var(--neon-cyan) !important; }
+
+/* Badge résultat (blackjack) */
+@keyframes result-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-result { animation: result-pop 0.35s ease-out; }
+
+/* Transition d'écran (lobby <-> table) */
+@keyframes screen-in {
+  0% { opacity: 0; filter: blur(7px) brightness(1.7); transform: translateY(8px); }
+  100% { opacity: 1; filter: none; transform: translateY(0); }
+}
+.screen-in { animation: screen-in 0.5s ease-out both; }
+
+/* Rouleaux de machine à sous (défilement vertical) */
+.reel-window {
+  height: 64px;
+  width: 64px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(5, 1, 15, 0.7);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  box-shadow: inset 0 0 14px rgba(0, 240, 255, 0.15);
+}
+.reel-cell {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+}
+.reel-strip.spinning {
+  animation: reel-spin 0.45s linear infinite;
+  filter: blur(0.6px);
+}
+@keyframes reel-spin {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+/* Traînée lumineuse de la roue pendant le spin */
+@keyframes wheel-blur {
+  0% { filter: blur(3px) brightness(1.35); }
+  80% { filter: blur(1px) brightness(1.1); }
+  100% { filter: none; }
+}
+.wheel-spinning { animation: wheel-blur 4.2s ease-out; }
+
+/* Barre de minuteur */
+.timer-bar {
+  height: 4px;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+  transition: width 0.3s linear;
+}
+
+/* Réduction des animations si demandé */
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+  .glitch::before, .glitch::after,
+  .turn-active, .btn:hover:not(:disabled) { animation: none; }
 }

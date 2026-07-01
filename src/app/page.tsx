@@ -54,11 +54,13 @@ function Lobby() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <section className="mb-8 text-center">
-        <h1 className="font-display text-4xl font-bold text-gold sm:text-5xl">
-          Casino Royale
+        <h1 className="font-display text-4xl font-black tracking-widest sm:text-6xl">
+          <span className="glitch" data-text="CASINO ROYALE">
+            CASINO ROYALE
+          </span>
         </h1>
-        <p className="mt-2 text-white/70">
-          Crée une table, partage le code à tes collègues, et jouez en temps réel.
+        <p className="mt-3 font-mono text-sm uppercase tracking-[0.3em] text-neon-magenta/80">
+          // temps réel · multijoueur · néon
         </p>
       </section>
 
@@ -137,8 +139,8 @@ function GameCard({
   loading: boolean;
 }) {
   return (
-    <div className={`card-surface bg-gradient-to-br ${accent} to-transparent p-6`}>
-      <h2 className="font-display text-2xl text-gold">{title}</h2>
+    <div className={`card-surface glitch-hover bg-gradient-to-br ${accent} to-transparent p-6`}>
+      <h2 className="font-display text-2xl font-bold tracking-wide text-neon-cyan">{title}</h2>
       <p className="mt-2 min-h-[3rem] text-sm text-white/75">{desc}</p>
       <button onClick={onCreate} disabled={loading} className="btn-gold mt-4 w-full">
         {loading ? "Création…" : "Créer une table"}

@@ -8,9 +8,9 @@ const TARGET = 40; // index du numéro gagnant dans la bande
 
 function pillClass(n: number): string {
   const c = colorOf(n);
-  if (c === "green") return "bg-felt-light";
-  if (c === "red") return "bg-red-700";
-  return "bg-black/80";
+  if (c === "green") return "bg-neon-green/80 text-black shadow-[0_0_10px_rgba(57,255,20,0.6)]";
+  if (c === "red") return "bg-[#ff1f5a] shadow-[0_0_10px_rgba(255,31,90,0.5)]";
+  return "bg-ink-700 border border-neon-cyan/25";
 }
 
 // Bande de numéros se terminant par le résultat à l'index TARGET.
@@ -74,14 +74,14 @@ export function RouletteWheel({
   return (
     <div
       ref={containerRef}
-      className="relative mb-3 h-16 overflow-hidden rounded-xl border border-gold/30 bg-black/40"
+      className="relative mb-3 h-16 overflow-hidden rounded-xl border border-neon-cyan/40 bg-ink-900/60 shadow-[0_0_22px_rgba(0,240,255,0.25),inset_0_0_18px_rgba(255,0,230,0.1)]"
     >
       {/* Repère central */}
-      <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-full w-0.5 -translate-x-1/2 bg-gold/80" />
-      <div className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 border-x-8 border-t-8 border-x-transparent border-t-gold" />
+      <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-full w-0.5 -translate-x-1/2 bg-neon-magenta shadow-[0_0_10px_var(--neon-magenta)]" />
+      <div className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 border-x-8 border-t-8 border-x-transparent border-t-neon-magenta" />
 
       <div
-        className="flex h-full items-center"
+        className={`flex h-full items-center ${animate ? "wheel-spinning" : ""}`}
         style={{
           transform: `translateX(${offset}px)`,
           transition: animate

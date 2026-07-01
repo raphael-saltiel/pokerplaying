@@ -5,7 +5,7 @@ import { usePlayer } from "@/components/PlayerProvider";
 import { PlayingCard } from "@/components/PlayingCard";
 import { post } from "@/lib/client";
 import { formatChips } from "@/lib/format";
-import { legalFor } from "@/lib/games/poker";
+import { legalFor, POKER_TURN_MS } from "@/lib/games/poker";
 import type { Card, PokerSeat, PokerState } from "@/lib/types";
 
 export function PokerTable({ code, state: raw }: { code: string; state: PokerState }) {
@@ -87,9 +87,21 @@ export function PokerTable({ code, state: raw }: { code: string; state: PokerSta
           {state.handNo > 0 && <span className="ml-2 text-white/40">Main #{state.handNo}</span>}
         </span>
         {secondsLeft != null && (
-          <span className="rounded-full bg-black/40 px-3 py-1 text-gold">⏱ {secondsLeft}s</span>
+          <span className="stat rounded-full bg-black/40 px-3 py-1 text-neon-cyan">⏱ {secondsLeft}s</span>
         )}
       </div>
+
+      {/* Barre de minuteur du joueur actif */}
+      {state.phase === "playing" && state.deadline != null && (
+        <div className="mb-3 h-1 w-full overflow-hidden rounded bg-white/5">
+          <div
+            className="timer-bar"
+            style={{
+              width: `${Math.max(0, Math.min(100, ((state.deadline - Date.now()) / POKER_TURN_MS) * 100))}%`,
+            }}
+          />
+        </div>
+      )}
 
       {/* Tapis : board + pot */}
       <div className="mb-4 rounded-2xl border border-gold/20 bg-felt-dark/60 p-5">
@@ -196,6 +208,9 @@ function ActionBar({
   }, [L.minRaiseTo, state.handNo, state.street]);
 
   const canRaise = L.maxRaiseTo > state.currentBet;
+  const clamp = (v: number) => Math.max(L.minRaiseTo, Math.min(L.maxRaiseTo, v));
+  const halfPot = clamp(state.currentBet + Math.floor(state.pot / 2));
+  const fullPot = clamp(state.currentBet + state.pot);
 
   return (
     <div className="flex flex-col gap-3">
@@ -220,20 +235,32 @@ function ActionBar({
       </div>
 
       {canRaise && (
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={L.minRaiseTo}
-            max={L.maxRaiseTo}
-            step={state.bigBlind}
-            value={raiseTo}
-            onChange={(e) => setRaiseTo(Number(e.target.value))}
-            className="flex-1 accent-gold"
-          />
-          <button onClick={() => setRaiseTo(L.maxRaiseTo)} className="btn-dark text-xs">
-            Tapis
-          </button>
-        </div>
+        <>
+          {/* Mises rapides */}
+          <div className="flex flex-wrap justify-center gap-2 text-xs">
+            <button onClick={() => setRaiseTo(halfPot)} className="btn-dark px-3 py-1">
+              ½ Pot
+            </button>
+            <button onClick={() => setRaiseTo(fullPot)} className="btn-dark px-3 py-1">
+              Pot
+            </button>
+            <button onClick={() => setRaiseTo(L.maxRaiseTo)} className="btn-ghost px-3 py-1">
+              Tapis
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={L.minRaiseTo}
+              max={L.maxRaiseTo}
+              step={state.bigBlind}
+              value={raiseTo}
+              onChange={(e) => setRaiseTo(Number(e.target.value))}
+              className="flex-1 accent-neon-cyan"
+            />
+            <span className="stat w-20 text-right text-sm text-neon-cyan">{formatChips(raiseTo)}</span>
+          </div>
+        </>
       )}
     </div>
   );
@@ -356,7 +383,7 @@ function PokerSeatView({
   return (
     <div
       className={`relative flex h-28 flex-col items-center justify-between rounded-xl border p-2 ${
-        isTurn ? "border-gold shadow-glow" : isMe ? "border-gold/40" : "border-white/15"
+        isTurn ? "turn-active border-neon-cyan" : isMe ? "border-neon-cyan/40" : "border-white/15"
       } ${seat.folded ? "opacity-50" : ""} bg-black/30`}
     >
       {isButton && (

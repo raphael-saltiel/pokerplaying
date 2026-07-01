@@ -26,19 +26,23 @@ export function Header() {
   }, [player?.balance, player]);
 
   return (
-    <header className="flex items-center justify-between border-b border-gold/20 px-4 py-3 sm:px-6">
-      <Link href="/" className="font-display text-xl font-bold text-gold sm:text-2xl">
-        ♠ Casino Royale ♦
+    <header className="flex items-center justify-between border-b border-neon-cyan/25 px-4 py-3 shadow-[0_6px_20px_-12px_rgba(0,240,255,0.6)] sm:px-6">
+      <Link href="/" className="font-display text-lg font-black tracking-widest sm:text-2xl">
+        <span className="glitch" data-text="CASINO ROYALE">
+          CASINO ROYALE
+        </span>
       </Link>
       {player && (
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <div className="text-xs text-white/60">{player.name}</div>
-            <div className={`font-semibold text-gold ${flash ? "balance-flash" : ""}`}>
-              {formatChips(player.balance)} <span className="text-xs">jetons</span>
+            <div className="text-[10px] uppercase tracking-widest text-neon-magenta/80">
+              {player.name}
+            </div>
+            <div className={`stat text-lg font-semibold text-neon-cyan ${flash ? "balance-flash" : ""}`}>
+              {formatChips(player.balance)} <span className="text-[10px] text-neon-cyan/60">◆ JETONS</span>
             </div>
           </div>
-          <button onClick={logout} className="btn-ghost text-xs px-2 py-1" title="Changer de joueur">
+          <button onClick={logout} className="btn-ghost px-2 py-1 text-xs" title="Changer de joueur">
             ⎋
           </button>
         </div>

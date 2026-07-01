@@ -117,9 +117,14 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
         <div className="mb-1 text-xs uppercase tracking-wide text-white/50">Croupier</div>
         <div className="flex gap-1.5">
           {state.dealer.cards.length === 0 && <div className="playing-card back opacity-30" />}
-          {state.dealer.cards.map((c, i) => (
-            <PlayingCard key={i} card={c} hidden={state.dealer.hidden && i === 1} />
-          ))}
+          {state.dealer.cards.map((c, i) => {
+            const revealed = i === 1 && !state.dealer.hidden;
+            return (
+              <div key={i} className={revealed ? "animate-flip" : ""}>
+                <PlayingCard card={c} hidden={state.dealer.hidden && i === 1} />
+              </div>
+            );
+          })}
         </div>
         {state.dealer.cards.length > 0 && (
           <div className="mt-1 text-sm font-semibold text-white/80">
@@ -217,6 +222,20 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
                   >
                     Quitter la place
                   </button>
+                </div>
+                {/* Mises rapides */}
+                <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+                  <span className="text-white/50">Rapide :</span>
+                  {[100, 250, 500, 1000].map((amt) => (
+                    <button
+                      key={amt}
+                      onClick={() => call("/api/blackjack/bet", { code, playerId: player!.id, amount: amt })}
+                      disabled={busy}
+                      className="btn-dark px-3 py-1"
+                    >
+                      +{amt}
+                    </button>
+                  ))}
                 </div>
                 <p className="text-xs text-white/60">
                   Ta mise : <span className="text-gold">{formatChips(mySeat.baseBet)}</span>
@@ -326,12 +345,35 @@ function SeatView({
     );
   }
 
+  // Résultat net du siège (pour le glow win/lose au paiement).
+  const net =
+    phase === "payout"
+      ? seat.hands.reduce((s, h) => s + h.payout, 0) +
+        (seat.insuranceResult === "win" ? seat.insurance * 2 : seat.insuranceResult === "lose" ? -seat.insurance : 0)
+      : null;
+  const borderCls = isTurnSeat
+    ? "turn-active border-neon-cyan"
+    : net != null
+    ? net > 0
+      ? "border-neon-green shadow-glow-green"
+      : net < 0
+      ? "border-[#ff1f5a] shadow-[0_0_18px_rgba(255,31,90,0.45)]"
+      : "border-white/30"
+    : isMe
+    ? "border-neon-cyan/40"
+    : "border-white/15";
+
   return (
-    <div
-      className={`flex min-h-[13rem] flex-col items-center justify-between rounded-xl border p-3 ${
-        isTurnSeat ? "border-gold shadow-glow" : isMe ? "border-gold/40" : "border-white/15"
-      } bg-black/30`}
-    >
+    <div className={`relative flex min-h-[13rem] flex-col items-center justify-between rounded-xl border p-3 ${borderCls} bg-black/30`}>
+      {net != null && net !== 0 && (
+        <span
+          className={`animate-result absolute -top-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+            net > 0 ? "bg-neon-green text-black" : "bg-[#ff1f5a] text-white"
+          }`}
+        >
+          {net > 0 ? `+${formatChips(net)}` : formatChips(net)}
+        </span>
+      )}
       <div className="text-center">
         <div className={`text-sm font-semibold ${isMe ? "text-gold" : "text-white/90"}`}>{seat.name}</div>
         {phase === "betting" ? (

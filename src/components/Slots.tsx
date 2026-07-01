@@ -5,6 +5,7 @@ import { usePlayer } from "@/components/PlayerProvider";
 import { formatChips } from "@/lib/format";
 
 const BETS = [10, 50, 100, 500];
+const SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "7️⃣", "💎"];
 
 export function Slots() {
   const { player, setBalance } = usePlayer();
@@ -13,16 +14,14 @@ export function Slots() {
   const [spinning, setSpinning] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [win, setWin] = useState<{ payout: number; mult: number } | null>(null);
 
   async function spin() {
     if (!player || spinning) return;
     setSpinning(true);
     setErr(null);
     setMsg(null);
-    // petite animation de défilement
-    const anim = setInterval(() => {
-      setReels([rnd(), rnd(), rnd()]);
-    }, 70);
+    setWin(null);
     try {
       const res = await fetch("/api/slots/spin", {
         method: "POST",
@@ -30,27 +29,26 @@ export function Slots() {
         body: JSON.stringify({ playerId: player.id, bet }),
       });
       const data = await res.json();
-      clearInterval(anim);
       if (!res.ok) {
         setErr(data.error ?? "Erreur");
         setSpinning(false);
         return;
       }
-      // léger délai pour l'effet
+      // On laisse les rouleaux défiler un court instant avant d'afficher le résultat.
       setTimeout(() => {
         setReels(data.reels);
         setBalance(data.balance);
         if (data.payout > 0) {
           setMsg(`🎉 Gagné +${formatChips(data.payout)} jetons !`);
+          setWin({ payout: data.payout, mult: bet > 0 ? Math.round(data.gross / bet) : 0 });
         } else if (data.payout === 0) {
-          setMsg(`😐 Mise rendue (±0).`);
+          setMsg("😐 Mise rendue (±0).");
         } else {
           setMsg(`Perdu ${formatChips(bet)} jetons.`);
         }
         setSpinning(false);
-      }, 300);
+      }, 750);
     } catch {
-      clearInterval(anim);
       setErr("Réseau indisponible.");
       setSpinning(false);
     }
@@ -58,19 +56,20 @@ export function Slots() {
 
   return (
     <div className="card-surface p-5">
-      <h3 className="mb-1 font-display text-xl text-gold">🎰 Machine à sous</h3>
+      <h3 className="mb-1 font-display text-xl font-bold text-neon-cyan">🎰 Machine à sous</h3>
       <p className="mb-4 text-xs text-white/60">Jeu solo · 3 identiques = jackpot (💎 ×100)</p>
 
-      <div className="mb-4 flex justify-center gap-2 rounded-xl bg-black/50 p-4">
+      <div className="mb-4 flex justify-center gap-3 rounded-xl bg-ink-900/60 p-4">
         {reels.map((r, i) => (
-          <div
-            key={i}
-            className="flex h-16 w-16 items-center justify-center rounded-lg bg-white/5 text-4xl"
-          >
-            {r}
-          </div>
+          <SlotReel key={i} symbol={r} spinning={spinning} idx={i} />
         ))}
       </div>
+
+      {win && (
+        <div className="mb-3 text-center">
+          <span className="stat text-3xl font-black text-neon-yellow">×{win.mult}</span>
+        </div>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
         {BETS.map((b) => (
@@ -88,10 +87,31 @@ export function Slots() {
         {spinning ? "🎲 …" : `Lancer (${bet})`}
       </button>
 
-      {msg && <p className="mt-3 text-center text-sm text-gold">{msg}</p>}
+      {msg && <p className="mt-3 text-center text-sm text-neon-cyan">{msg}</p>}
       {err && <p className="mt-3 text-center text-sm text-red-400">{err}</p>}
 
       <Paytable />
+    </div>
+  );
+}
+
+function SlotReel({ symbol, spinning, idx }: { symbol: string; spinning: boolean; idx: number }) {
+  const strip = [...SYMBOLS, ...SYMBOLS]; // dupliqué pour une boucle sans couture
+  return (
+    <div className="reel-window">
+      {spinning ? (
+        <div className="reel-strip spinning" style={{ animationDuration: `${0.35 + idx * 0.08}s` }}>
+          {strip.map((s, i) => (
+            <div key={i} className="reel-cell">
+              {s}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="reel-strip">
+          <div className="reel-cell">{symbol}</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -163,9 +183,4 @@ function Paytable() {
       )}
     </div>
   );
-}
-
-function rnd() {
-  const s = ["🍒", "🍋", "🔔", "⭐", "7️⃣", "💎"];
-  return s[Math.floor(Math.random() * s.length)];
 }

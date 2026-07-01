@@ -59,6 +59,17 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
   const myBets = state.bets.filter((b) => b.playerId === player?.id);
   const myStake = myBets.reduce((s, b) => s + b.amount, 0);
 
+  // Montant que J'AI empilé sur chaque case (pour l'indicateur de mise rapide).
+  const stakeByCell: Record<string, number> = {};
+  for (const b of myBets) {
+    const key =
+      b.kind === "number" || b.kind === "dozen" || b.kind === "column"
+        ? `${b.kind}:${b.value}`
+        : b.kind;
+    stakeByCell[key] = (stakeByCell[key] ?? 0) + b.amount;
+  }
+  const cellStake = (k: string) => stakeByCell[k] ?? 0;
+
   async function placeBet(kind: RouletteBetKind, value?: number) {
     if (!player || !betting || busy) return;
     setBusy(true);
@@ -95,8 +106,11 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
     <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
       {/* Plateau */}
       <div className="card-surface p-4">
-        {/* Historique + résultat */}
-        <div className="mb-4 flex items-center justify-between gap-3">
+        {/* Historique permanent + résultat */}
+        <div className="mb-4 flex items-center gap-3">
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-neon-magenta/70">
+            Historique
+          </span>
           <div className="flex flex-wrap gap-1">
             {state.history.length === 0 && (
               <span className="text-sm text-white/40">Aucun tirage pour l&apos;instant</span>
@@ -126,14 +140,18 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
           </p>
         )}
 
+        <p className="mb-2 text-center text-[11px] uppercase tracking-widest text-neon-cyan/60">
+          Clique une case (répète pour empiler tes jetons)
+        </p>
         {/* Grille des numéros */}
         <div className="mb-3 grid grid-cols-[auto_1fr] gap-2">
           <button
             disabled={!betting || busy}
             onClick={() => placeBet("number", 0)}
-            className="flex w-9 items-center justify-center rounded bg-felt-light font-bold text-white hover:brightness-110 disabled:opacity-50"
+            className="relative flex w-9 items-center justify-center rounded bg-neon-green/80 font-bold text-black hover:brightness-110 disabled:opacity-50"
           >
             0
+            <ChipBadge amount={cellStake("number:0")} />
           </button>
           <div className="grid grid-cols-12 gap-1">
             {NUMBERS.slice(1).map((n) => (
@@ -141,11 +159,12 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
                 key={n}
                 disabled={!betting || busy}
                 onClick={() => placeBet("number", n)}
-                className={`flex h-8 items-center justify-center rounded text-xs font-bold text-white hover:brightness-125 disabled:opacity-50 ${pill(
+                className={`relative flex h-8 items-center justify-center rounded text-xs font-bold text-white hover:brightness-125 disabled:opacity-50 ${pill(
                   n
                 )}`}
               >
                 {n}
+                <ChipBadge amount={cellStake(`number:${n}`)} />
               </button>
             ))}
           </div>
@@ -153,25 +172,15 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
 
         {/* Mises extérieures */}
         <div className="grid grid-cols-3 gap-1 text-xs font-semibold sm:text-sm">
-          <Outside label="1ère 12" onClick={() => placeBet("dozen", 1)} d={!betting || busy} />
-          <Outside label="2e 12" onClick={() => placeBet("dozen", 2)} d={!betting || busy} />
-          <Outside label="3e 12" onClick={() => placeBet("dozen", 3)} d={!betting || busy} />
-          <Outside label="Manque 1-18" onClick={() => placeBet("low")} d={!betting || busy} />
-          <Outside label="Pair" onClick={() => placeBet("even")} d={!betting || busy} />
-          <Outside label="Impair" onClick={() => placeBet("odd")} d={!betting || busy} />
-          <Outside
-            label="Rouge"
-            onClick={() => placeBet("red")}
-            d={!betting || busy}
-            cls="bg-red-700/70"
-          />
-          <Outside
-            label="Noir"
-            onClick={() => placeBet("black")}
-            d={!betting || busy}
-            cls="bg-black/70"
-          />
-          <Outside label="Passe 19-36" onClick={() => placeBet("high")} d={!betting || busy} />
+          <Outside label="1ère 12" onClick={() => placeBet("dozen", 1)} d={!betting || busy} stake={cellStake("dozen:1")} />
+          <Outside label="2e 12" onClick={() => placeBet("dozen", 2)} d={!betting || busy} stake={cellStake("dozen:2")} />
+          <Outside label="3e 12" onClick={() => placeBet("dozen", 3)} d={!betting || busy} stake={cellStake("dozen:3")} />
+          <Outside label="Manque 1-18" onClick={() => placeBet("low")} d={!betting || busy} stake={cellStake("low")} />
+          <Outside label="Pair" onClick={() => placeBet("even")} d={!betting || busy} stake={cellStake("even")} />
+          <Outside label="Impair" onClick={() => placeBet("odd")} d={!betting || busy} stake={cellStake("odd")} />
+          <Outside label="Rouge" onClick={() => placeBet("red")} d={!betting || busy} cls="bg-[#ff1f5a]/70" stake={cellStake("red")} />
+          <Outside label="Noir" onClick={() => placeBet("black")} d={!betting || busy} cls="bg-ink-700" stake={cellStake("black")} />
+          <Outside label="Passe 19-36" onClick={() => placeBet("high")} d={!betting || busy} stake={cellStake("high")} />
         </div>
 
         {err && <p className="mt-3 text-center text-sm text-red-400">{err}</p>}
@@ -295,28 +304,41 @@ function Outside({
   onClick,
   d,
   cls,
+  stake,
 }: {
   label: string;
   onClick: () => void;
   d: boolean;
   cls?: string;
+  stake?: number;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={d}
-      className={`rounded px-2 py-2 text-white hover:brightness-125 disabled:opacity-50 ${
+      className={`relative rounded border border-neon-cyan/20 px-2 py-2 text-white hover:brightness-125 disabled:opacity-50 ${
         cls ?? "bg-felt"
       }`}
     >
       {label}
+      <ChipBadge amount={stake ?? 0} />
     </button>
+  );
+}
+
+// Jeton empilé sur une case (indicateur de mise rapide).
+function ChipBadge({ amount }: { amount: number }) {
+  if (!amount) return null;
+  return (
+    <span className="absolute -right-1 -top-1 z-10 flex min-w-[1.1rem] items-center justify-center rounded-full bg-neon-yellow px-1 text-[9px] font-bold text-black shadow-[0_0_8px_rgba(244,255,0,0.8)]">
+      {formatChips(amount)}
+    </span>
   );
 }
 
 function pill(n: number): string {
   const c = colorOf(n);
-  if (c === "green") return "bg-felt-light";
-  if (c === "red") return "bg-red-700";
-  return "bg-black/80";
+  if (c === "green") return "bg-neon-green/80 text-black";
+  if (c === "red") return "bg-[#ff1f5a]";
+  return "bg-ink-700 border border-neon-cyan/20";
 }
