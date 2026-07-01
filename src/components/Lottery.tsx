@@ -180,6 +180,11 @@ export function Lottery() {
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm text-white/70">
               Sélection : <span className="text-neon-green">{selected.length}/{data.pick}</span>
+              {player && (
+                <span className="ml-3 text-white/50">
+                  Solde : <span className="stat text-neon-cyan">{formatChips(player.balance)}</span>
+                </span>
+              )}
             </span>
             <div className="flex gap-2">
               <button onClick={quickPick} className="btn-dark text-sm">
@@ -187,13 +192,18 @@ export function Lottery() {
               </button>
               <button
                 onClick={buy}
-                disabled={busy || selected.length !== data.pick}
+                disabled={busy || selected.length !== data.pick || !!player && player.balance < data.price}
                 className="btn-gold text-sm"
               >
                 Valider ({formatChips(data.price)})
               </button>
             </div>
           </div>
+          {player && player.balance < data.price && (
+            <p className="mt-2 text-sm text-yellow-400">
+              Solde insuffisant : il te faut {formatChips(data.price)} jetons par ticket.
+            </p>
+          )}
           {err && <p className="mt-2 text-sm text-red-400">{err}</p>}
           {msg && !err && <p className="mt-2 text-sm text-neon-green">{msg}</p>}
         </div>
