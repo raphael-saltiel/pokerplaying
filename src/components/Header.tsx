@@ -27,7 +27,7 @@ export function Header() {
   }, [player?.balance, player]);
 
   return (
-    <header className="flex items-center justify-between border-b border-neon-cyan/25 px-4 py-3 shadow-[0_6px_20px_-12px_rgba(0,240,255,0.6)] sm:px-6">
+    <header className="flex items-center justify-between border-b border-amber/15 px-4 py-3 shadow-[0_6px_20px_-12px_rgba(255,176,0,0.35)] sm:px-6">
       <Link href="/" className="flex items-center gap-2 font-display text-lg font-black tracking-widest sm:text-2xl">
         <Logo size={36} className="shrink-0" />
         <span className="glitch hidden sm:inline" data-text="CASINO ROYALE">
@@ -40,11 +40,11 @@ export function Header() {
       {player && (
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-widest text-neon-magenta/80">
-              {player.name}
+            <div className="tag">
+              SYS://{player.name}
             </div>
-            <div className={`stat text-lg font-semibold text-neon-cyan ${flash ? "balance-flash" : ""}`}>
-              {formatChips(player.balance)} <span className="text-[10px] text-neon-cyan/60">◆ JETONS</span>
+            <div className={`stat text-lg font-semibold text-amber ${flash ? "balance-flash" : ""}`}>
+              {formatChips(player.balance)} <span className="text-[10px] text-amber/60">◆ JTN</span>
             </div>
           </div>
           <button onClick={logout} className="btn-ghost px-2 py-1 text-xs" title="Changer de joueur">

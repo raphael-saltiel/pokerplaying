@@ -98,7 +98,7 @@ export function Lottery() {
       } else {
         setBalance(d.balance);
         setSelected([]);
-        setMsg("🎟️ Ticket enregistré ! Résultat au prochain tirage (minuit UTC).");
+        setMsg("🎟️ Ticket enregistré. Verdict au prochain tirage (minuit UTC).");
         load();
       }
     } catch {
@@ -112,7 +112,7 @@ export function Lottery() {
   if (!loaded) {
     return (
       <section className="mt-8">
-        <h2 className="mb-2 font-display text-2xl font-bold tracking-wide text-neon-green">
+        <h2 className="mb-2 font-display text-2xl font-bold tracking-wide text-amber">
           🎱 Loto quotidien
         </h2>
         <div className="card-surface p-4 text-sm text-white/60">Chargement du loto…</div>
@@ -122,15 +122,15 @@ export function Lottery() {
   if (loadErr || !data) {
     return (
       <section className="mt-8">
-        <h2 className="mb-2 font-display text-2xl font-bold tracking-wide text-neon-green">
+        <h2 className="mb-2 font-display text-2xl font-bold tracking-wide text-amber">
           🎱 Loto quotidien
         </h2>
         <div className="card-surface p-4 text-sm">
           <p className="mb-2 text-red-400">Loto indisponible : {loadErr ?? "aucune donnée"}.</p>
           <p className="text-white/60">
             Vérifie que le schéma SQL a bien été (ré)exécuté dans Supabase (tables{" "}
-            <code className="text-neon-cyan">lottery_draws</code> et{" "}
-            <code className="text-neon-cyan">lottery_tickets</code>), puis redéploie.
+            <code className="text-amber">lottery_draws</code> et{" "}
+            <code className="text-amber">lottery_tickets</code>), puis redéploie.
           </p>
           <button onClick={() => { setLoaded(false); load(); }} className="btn-dark mt-3 text-sm">
             Réessayer
@@ -145,14 +145,14 @@ export function Lottery() {
   return (
     <section className="mt-8">
       <div className="mb-1 flex items-baseline justify-between">
-        <h2 className="font-display text-2xl font-bold tracking-wide text-neon-green">
+        <h2 className="font-display text-2xl font-bold tracking-wide text-amber">
           🎱 Loto quotidien
         </h2>
-        <span className="stat text-sm text-neon-cyan">⏳ {fmt(left)}</span>
+        <span className="stat text-sm text-amber">⏳ {fmt(left)}</span>
       </div>
-      <p className="mb-4 text-xs text-white/60">
-        Choisis {data.pick} numéros (1–{data.max}) · {formatChips(data.price)} jetons le ticket ·
-        tirage chaque jour à minuit (UTC)
+      <p className="tag mb-4">
+        LOTO // {data.pick} numéros (1–{data.max}) · {formatChips(data.price)} jetons le ticket ·
+        tirage à minuit UTC
       </p>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
@@ -167,8 +167,8 @@ export function Lottery() {
                   onClick={() => toggle(n)}
                   className={`flex h-8 items-center justify-center rounded font-mono text-sm font-bold transition ${
                     on
-                      ? "bg-neon-green text-black shadow-glow-green"
-                      : "bg-ink-800 text-white/80 hover:bg-ink-600"
+                      ? "bg-cash text-black shadow-glow-cash"
+                      : "bg-carbon-800 text-white/80 hover:bg-carbon-600"
                   }`}
                 >
                   {n}
@@ -179,10 +179,10 @@ export function Lottery() {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm text-white/70">
-              Sélection : <span className="text-neon-green">{selected.length}/{data.pick}</span>
+              Sélection : <span className="stat text-amber">{selected.length}/{data.pick}</span>
               {player && (
                 <span className="ml-3 text-white/50">
-                  Solde : <span className="stat text-neon-cyan">{formatChips(player.balance)}</span>
+                  Solde : <span className="stat text-amber">{formatChips(player.balance)}</span>
                 </span>
               )}
             </span>
@@ -200,24 +200,24 @@ export function Lottery() {
             </div>
           </div>
           {player && player.balance < data.price && (
-            <p className="mt-2 text-sm text-yellow-400">
+            <p className="mt-2 text-sm text-amber-hi">
               Solde insuffisant : il te faut {formatChips(data.price)} jetons par ticket.
             </p>
           )}
           {err && <p className="mt-2 text-sm text-red-400">{err}</p>}
-          {msg && !err && <p className="mt-2 text-sm text-neon-green">{msg}</p>}
+          {msg && !err && <p className="mt-2 text-sm text-cash">{msg}</p>}
         </div>
 
         {/* Panneau latéral */}
         <div className="flex flex-col gap-4">
           {/* Table des gains */}
           <div className="card-surface p-4">
-            <h3 className="mb-2 text-sm font-semibold text-white/80">Gains</h3>
+            <h3 className="tag mb-2">01 // Gains</h3>
             <ul className="space-y-1 font-mono text-xs">
               {prizeRows.map(([m, amt]) => (
                 <li key={m} className="flex justify-between">
                   <span className="text-white/70">{m} bons numéros</span>
-                  <span className="text-neon-green">{formatChips(amt)}</span>
+                  <span className="stat text-cash">{formatChips(amt)}</span>
                 </li>
               ))}
             </ul>
@@ -225,8 +225,8 @@ export function Lottery() {
 
           {/* Mes tickets du jour */}
           <div className="card-surface p-4">
-            <h3 className="mb-2 text-sm font-semibold text-white/80">
-              Mes tickets ({data.myToday.length})
+            <h3 className="tag mb-2">
+              02 // Mes tickets ({data.myToday.length})
             </h3>
             {data.myToday.length === 0 ? (
               <p className="text-xs text-white/40">Aucun ticket pour aujourd&apos;hui.</p>
@@ -246,8 +246,8 @@ export function Lottery() {
           {/* Dernier tirage */}
           {data.last && (
             <div className="card-surface p-4">
-              <h3 className="mb-2 text-sm font-semibold text-white/80">
-                Tirage du {data.last.date}
+              <h3 className="tag mb-2">
+                03 // Tirage du {data.last.date}
               </h3>
               <div className="mb-2 flex flex-wrap gap-1">
                 {data.last.numbers.map((n) => (
@@ -259,7 +259,7 @@ export function Lottery() {
                   {data.last.myTickets.map((t, i) => (
                     <li key={i} className="flex items-center justify-between">
                       <span className="text-white/60">{t.matches} bons</span>
-                      <span className={t.prize > 0 ? "text-neon-green" : "text-white/40"}>
+                      <span className={`stat ${t.prize > 0 ? "text-cash" : "text-white/40"}`}>
                         {t.prize > 0 ? `+${formatChips(t.prize)}` : "—"}
                       </span>
                     </li>
@@ -280,7 +280,7 @@ function Ball({ n, win }: { n: number; win?: boolean }) {
   return (
     <span
       className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-xs font-bold ${
-        win ? "bg-neon-green text-black shadow-glow-green" : "bg-ink-700 text-white/80"
+        win ? "bg-cash text-black shadow-glow-cash" : "bg-carbon-700 text-white/80"
       }`}
     >
       {n}

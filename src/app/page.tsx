@@ -59,14 +59,14 @@ function Lobby() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <section className="mb-8 text-center">
-        <Logo size={92} className="mx-auto mb-3 drop-shadow-[0_0_18px_rgba(0,240,255,0.5)]" />
+        <Logo size={92} className="mx-auto mb-3 drop-shadow-[0_0_18px_rgba(255,176,0,0.45)]" />
         <h1 className="font-display text-4xl font-black tracking-widest sm:text-6xl">
           <span className="glitch" data-text="CASINO ROYALE">
             CASINO ROYALE
           </span>
         </h1>
-        <p className="mt-3 font-mono text-sm uppercase tracking-[0.3em] text-neon-magenta/80">
-          // temps réel · multijoueur · néon
+        <p className="mt-3">
+          <span className="tag">LEDGER.SYS // CASINO CLANDESTIN — JETONS FICTIFS</span>
         </p>
       </section>
 
@@ -89,23 +89,23 @@ function Lobby() {
       {/* Jeux multijoueurs */}
       <div className="grid gap-5 sm:grid-cols-3">
         <GameCard
-          title="♠ Poker"
-          desc="Texas Hold'em No-Limit. Blindes, mises, abattage, tapis. Jusqu'à 6 joueurs, départ automatique."
-          accent="from-amber-900/40"
+          index="01"
+          title="Poker"
+          desc="Texas Hold&apos;em No-Limit. Blindes, mises, abattage, tapis. Jusqu&apos;à 6 joueurs, départ automatique."
           onCreate={() => createTable("poker")}
           loading={busy === "poker"}
         />
         <GameCard
-          title="🎡 Roulette"
+          index="02"
+          title="Roulette"
           desc="Misez tous ensemble, une roue partagée. Rouge/noir, numéros, douzaines…"
-          accent="from-red-900/40"
           onCreate={() => createTable("roulette")}
           loading={busy === "roulette"}
         />
         <GameCard
-          title="🃏 Blackjack"
-          desc="Jusqu'à 5 joueurs à la même table contre le croupier. Tirez, restez, doublez."
-          accent="from-emerald-900/40"
+          index="03"
+          title="Blackjack"
+          desc="Jusqu&apos;à 5 joueurs à la même table contre le croupier. Tirez, restez, doublez."
           onCreate={() => createTable("blackjack")}
           loading={busy === "blackjack"}
         />
@@ -114,16 +114,16 @@ function Lobby() {
       {/* Jeu solo */}
       <div className="mt-8 grid gap-5 sm:grid-cols-2">
         <Slots />
-        <div className="card-surface flex flex-col justify-center p-5 text-sm text-white/70">
-          <h3 className="mb-2 font-display text-xl text-gold">Comment jouer ?</h3>
-          <ol className="list-decimal space-y-1 pl-5">
+        <div className="card-surface flex flex-col justify-center p-5 text-sm">
+          <h3 className="tag mb-3">SYS:// COMMENT JOUER</h3>
+          <ol className="list-decimal space-y-1 pl-5 font-mono text-white/65">
             <li>Crée une table (Poker, Roulette ou Blackjack).</li>
             <li>Partage le code à 4 lettres à tes collègues.</li>
             <li>Ils saisissent le code ci-dessus pour te rejoindre.</li>
             <li>Tout le monde voit les mises et résultats en direct.</li>
           </ol>
-          <p className="mt-3 text-white/50">
-            Chaque joueur démarre avec 10 000 jetons (argent fictif).
+          <p className="mt-3 font-mono text-white/50">
+            Chaque joueur démarre avec <span className="stat">10 000</span> jetons (argent fictif).
           </p>
         </div>
       </div>
@@ -138,22 +138,25 @@ function Lobby() {
 }
 
 function GameCard({
+  index,
   title,
   desc,
-  accent,
   onCreate,
   loading,
 }: {
+  index: string;
   title: string;
   desc: string;
-  accent: string;
   onCreate: () => void;
   loading: boolean;
 }) {
   return (
-    <div className={`card-surface glitch-hover bg-gradient-to-br ${accent} to-transparent p-6`}>
-      <h2 className="font-display text-2xl font-bold tracking-wide text-neon-cyan">{title}</h2>
-      <p className="mt-2 min-h-[3rem] text-sm text-white/75">{desc}</p>
+    <div className="card-surface glitch-hover p-6">
+      <p className="tag mb-2">
+        {index} // {title.toUpperCase()}
+      </p>
+      <h2 className="font-display text-2xl font-bold tracking-wide text-amber">{title}</h2>
+      <p className="mt-2 min-h-[3rem] text-sm text-white/60">{desc}</p>
       <button onClick={onCreate} disabled={loading} className="btn-gold mt-4 w-full">
         {loading ? "Création…" : "Créer une table"}
       </button>

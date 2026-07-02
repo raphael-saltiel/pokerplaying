@@ -123,9 +123,7 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
       <div className="card-surface p-4">
         {/* Historique permanent + résultat */}
         <div className="mb-4 flex items-center gap-3">
-          <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-neon-magenta/70">
-            Historique
-          </span>
+          <span className="tag shrink-0">LEDGER // Historique</span>
           <div className="flex flex-wrap gap-1">
             {state.history.length === 0 && (
               <span className="text-sm text-white/40">Aucun tirage pour l&apos;instant</span>
@@ -146,7 +144,7 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
         {state.phase === "result" && state.lastResult !== null && (
           <p className="mb-4 text-center text-sm text-white/80">
             Résultat :{" "}
-            <span className="font-bold text-gold">{state.lastResult}</span>{" "}
+            <span className="stat font-bold text-amber">{state.lastResult}</span>{" "}
             {colorOf(state.lastResult) === "green"
               ? "(Zéro !)"
               : colorOf(state.lastResult) === "red"
@@ -155,8 +153,8 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
           </p>
         )}
 
-        <p className="mb-2 text-center text-[11px] uppercase tracking-widest text-neon-cyan/60">
-          Clique une case (répète pour empiler tes jetons)
+        <p className="mb-2 text-center text-[11px] uppercase tracking-widest text-amber/60">
+          // Clique une case (répète pour empiler tes jetons)
         </p>
 
         <RouletteFelt
@@ -174,7 +172,7 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
       <div className="flex flex-col gap-4">
         {/* Sélecteur de jeton */}
         <div className="card-surface p-4">
-          <h3 className="mb-2 text-sm font-semibold text-white/80">Jeton</h3>
+          <h3 className="tag mb-2">01 // Jeton</h3>
           <div className="flex flex-wrap gap-2">
             {CHIPS.map((c) => (
               <button
@@ -187,7 +185,7 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
             ))}
           </div>
           <p className="mt-3 text-xs text-white/60">
-            Ma mise ce tour : <span className="text-gold">{formatChips(myStake)}</span>
+            Ma mise ce tour : <span className="stat text-amber">{formatChips(myStake)}</span>
           </p>
         </div>
 
@@ -195,7 +193,7 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
         <div className="card-surface p-4">
           {betting ? (
             <button onClick={spin} disabled={busy || state.bets.length === 0} className="btn-gold w-full">
-              🎡 Lancer la roue
+              » Lancer la roue
             </button>
           ) : (
             <button onClick={newRound} disabled={busy} className="btn-gold w-full">
@@ -204,10 +202,9 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
           )}
           <p className="mt-2 text-center text-xs text-white/50">
             {secondsLeft != null ? (
-              <span className="text-gold">
-                {betting
-                  ? `Tirage auto dans ${secondsLeft}s`
-                  : `Nouveau tour dans ${secondsLeft}s`}
+              <span className="text-amber">
+                {betting ? "Tirage auto dans " : "Nouveau tour dans "}
+                <span className="stat">{secondsLeft}s</span>
               </span>
             ) : betting ? (
               "Placez vos mises pour démarrer le décompte."
@@ -219,8 +216,8 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
 
         {/* Mises en cours / gains */}
         <div className="card-surface p-4">
-          <h3 className="mb-2 text-sm font-semibold text-white/80">
-            {state.phase === "result" ? "Résultats" : "Mises en cours"}
+          <h3 className="tag mb-2">
+            02 // {state.phase === "result" ? "Résultats" : "Mises en cours"}
           </h3>
           {state.phase === "result" ? (
             <ul className="space-y-1 text-sm">
@@ -229,10 +226,10 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
               )}
               {(state.lastPayouts ?? []).map((p) => (
                 <li key={p.playerId} className="flex justify-between">
-                  <span className={p.playerId === player?.id ? "text-gold" : "text-white/80"}>
+                  <span className={p.playerId === player?.id ? "text-amber" : "text-white/80"}>
                     {p.name}
                   </span>
-                  <span className={p.net >= 0 ? "text-emerald-400" : "text-red-400"}>
+                  <span className={`stat ${p.net >= 0 ? "text-cash" : "text-rl-red"}`}>
                     {p.net >= 0 ? "+" : ""}
                     {formatChips(p.net)}
                   </span>
@@ -246,15 +243,15 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
 
         {/* Joueurs présents */}
         <div className="card-surface p-4">
-          <h3 className="mb-2 text-sm font-semibold text-white/80">
-            À la table ({state.players?.length ?? 0})
+          <h3 className="tag mb-2">
+            03 // À la table ({state.players?.length ?? 0})
           </h3>
           <div className="flex flex-wrap gap-2 text-xs">
             {(state.players ?? []).map((p) => (
               <span
                 key={p.id}
-                className={`rounded-full px-2 py-1 ${
-                  p.id === player?.id ? "bg-gold/20 text-gold" : "bg-white/10 text-white/80"
+                className={`rounded px-2 py-1 ${
+                  p.id === player?.id ? "bg-amber/20 text-amber" : "bg-white/10 text-white/80"
                 }`}
               >
                 {p.name}
@@ -273,10 +270,10 @@ function BetList({ bets, meId }: { bets: RouletteBet[]; meId?: string }) {
     <ul className="max-h-48 space-y-1 overflow-y-auto text-sm">
       {bets.map((b) => (
         <li key={b.id} className="flex justify-between">
-          <span className={b.playerId === meId ? "text-gold" : "text-white/80"}>
+          <span className={b.playerId === meId ? "text-amber" : "text-white/80"}>
             {b.name} · {betLabel(b)}
           </span>
-          <span className="text-white/70">{formatChips(b.amount)}</span>
+          <span className="stat text-white/70">{formatChips(b.amount)}</span>
         </li>
       ))}
     </ul>
@@ -351,7 +348,7 @@ function RouletteFelt({
   highlight: number | null;
 }) {
   const d = !betting || busy;
-  const numBg = (n: number) => (colorOf(n) === "red" ? "bg-[#e01e5a]" : "bg-ink-800");
+  const numBg = (n: number) => (colorOf(n) === "red" ? "bg-rl-red" : "bg-carbon-800");
   const abs = (left: number, top: number, w: number, h: number) => ({
     position: "absolute" as const,
     left,
@@ -373,7 +370,7 @@ function RouletteFelt({
           style={abs(X0 + c * CW, r * CH, CW - GAP, CH - GAP)}
           className={`relative flex items-center justify-center rounded text-xs font-bold text-white transition hover:brightness-150 disabled:opacity-50 ${numBg(
             n
-          )} ${hot ? "z-20 ring-2 ring-neon-yellow shadow-glow-yellow animate-result" : ""}`}
+          )} ${hot ? "z-20 ring-2 ring-amber-hi shadow-glow-amber animate-result" : ""}`}
         >
           {n}
           <ChipBadge amount={cellStake(`number:${n}`)} />
@@ -391,8 +388,8 @@ function RouletteFelt({
             disabled={d}
             onClick={() => placeBet("number", 0)}
             style={abs(0, 0, ZW, 3 * CH - GAP)}
-            className={`relative flex items-center justify-center rounded bg-neon-green/80 font-bold text-black hover:brightness-110 disabled:opacity-50 ${
-              highlight === 0 ? "z-20 ring-2 ring-neon-yellow shadow-glow-yellow animate-result" : ""
+            className={`relative flex items-center justify-center rounded bg-cash/80 font-bold text-black hover:brightness-110 disabled:opacity-50 ${
+              highlight === 0 ? "z-20 ring-2 ring-amber-hi shadow-glow-amber animate-result" : ""
             }`}
           >
             0
@@ -411,7 +408,7 @@ function RouletteFelt({
                 disabled={d}
                 onClick={() => placeBet("column", colVal)}
                 style={abs(X0 + NUM_W, r * CH, ZW, CH - GAP)}
-                className="relative flex items-center justify-center rounded border border-neon-cyan/30 bg-ink-600 text-[10px] font-bold text-neon-cyan hover:brightness-125 disabled:opacity-50"
+                className="relative flex items-center justify-center rounded border border-amber/30 bg-carbon-600 text-[10px] font-bold text-amber hover:brightness-125 disabled:opacity-50"
               >
                 2:1
                 <ChipBadge amount={cellStake(`column:${colVal}`)} />
@@ -434,8 +431,8 @@ function RouletteFelt({
           {/* Chances simples */}
           <FeltCell style={abs(X0 + 0 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="1-18" d={d} onClick={() => placeBet("low")} stake={cellStake("low")} />
           <FeltCell style={abs(X0 + 2 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="PAIR" d={d} onClick={() => placeBet("even")} stake={cellStake("even")} />
-          <FeltCell style={abs(X0 + 4 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="ROUGE" d={d} onClick={() => placeBet("red")} stake={cellStake("red")} cls="bg-[#e01e5a]" />
-          <FeltCell style={abs(X0 + 6 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="NOIR" d={d} onClick={() => placeBet("black")} stake={cellStake("black")} cls="bg-ink-900 border border-white/25" />
+          <FeltCell style={abs(X0 + 4 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="ROUGE" d={d} onClick={() => placeBet("red")} stake={cellStake("red")} cls="bg-rl-red" />
+          <FeltCell style={abs(X0 + 6 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="NOIR" d={d} onClick={() => placeBet("black")} stake={cellStake("black")} cls="bg-carbon-900 border border-white/25" />
           <FeltCell style={abs(X0 + 8 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="IMPAIR" d={d} onClick={() => placeBet("odd")} stake={cellStake("odd")} />
           <FeltCell style={abs(X0 + 10 * CW, SIMPLE_TOP, 2 * CW - GAP, SH)} label="19-36" d={d} onClick={() => placeBet("high")} stake={cellStake("high")} />
 
@@ -449,10 +446,10 @@ function RouletteFelt({
                 title={`${z.kind === "split" ? "Cheval 17:1" : "Carré 8:1"} · ${z.numbers.join("-")}`}
                 onClick={() => placeBet(z.kind, undefined, z.numbers)}
                 style={{ ...abs(z.left, z.top, z.w, z.h), zIndex: 15 }}
-                className="rounded-sm transition hover:bg-neon-cyan/40 hover:ring-1 hover:ring-neon-cyan disabled:pointer-events-none"
+                className="rounded-sm transition hover:bg-amber/40 hover:ring-1 hover:ring-amber disabled:pointer-events-none"
               >
                 {stake > 0 && (
-                  <span className="absolute left-1/2 top-1/2 z-10 flex h-4 min-w-[1rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-neon-yellow px-1 text-[8px] font-bold text-black shadow-[0_0_6px_rgba(244,255,0,0.8)]">
+                  <span className="absolute left-1/2 top-1/2 z-10 flex h-4 min-w-[1rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-amber-hi px-1 text-[8px] font-bold text-black shadow-glow-amber">
                     {formatChips(stake)}
                   </span>
                 )}
@@ -462,8 +459,8 @@ function RouletteFelt({
         </div>
       </div>
       <p className="mb-3 text-center text-[10px] text-white/45">
-        Astuce : clique <span className="text-neon-cyan">entre 2 cases</span> = cheval (17:1) ·{" "}
-        <span className="text-neon-cyan">au coin de 4</span> = carré (8:1)
+        Astuce : clique <span className="text-amber">entre 2 cases</span> = cheval (17:1) ·{" "}
+        <span className="text-amber">au coin de 4</span> = carré (8:1)
       </p>
     </>
   );
@@ -490,7 +487,7 @@ function FeltCell({
       onClick={onClick}
       style={style}
       className={`relative flex items-center justify-center rounded text-[10px] font-bold uppercase tracking-wide text-white transition hover:brightness-125 disabled:opacity-50 ${
-        cls ?? "bg-ink-700 border border-neon-cyan/25"
+        cls ?? "bg-carbon-700 border border-amber/20"
       }`}
     >
       {label}
@@ -503,7 +500,7 @@ function FeltCell({
 function ChipBadge({ amount }: { amount: number }) {
   if (!amount) return null;
   return (
-    <span className="absolute -right-1 -top-1 z-10 flex min-w-[1.1rem] items-center justify-center rounded-full bg-neon-yellow px-1 text-[9px] font-bold text-black shadow-[0_0_8px_rgba(244,255,0,0.8)]">
+    <span className="absolute -right-1 -top-1 z-10 flex min-w-[1.1rem] items-center justify-center rounded-full bg-amber-hi px-1 text-[9px] font-bold text-black shadow-glow-amber">
       {formatChips(amount)}
     </span>
   );
@@ -511,7 +508,7 @@ function ChipBadge({ amount }: { amount: number }) {
 
 function pill(n: number): string {
   const c = colorOf(n);
-  if (c === "green") return "bg-neon-green/80 text-black";
-  if (c === "red") return "bg-[#ff1f5a]";
-  return "bg-ink-700 border border-neon-cyan/20";
+  if (c === "green") return "bg-cash/80 text-black";
+  if (c === "red") return "bg-rl-red";
+  return "bg-carbon-800 border border-amber/10";
 }

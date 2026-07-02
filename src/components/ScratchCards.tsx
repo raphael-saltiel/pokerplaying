@@ -7,10 +7,10 @@ import { fireConfetti } from "@/lib/confetti";
 import { TICKETS, ticketOdds, type NeonColor, type ScratchTicket } from "@/lib/games/scratch";
 
 const COLOR: Record<NeonColor, { text: string; border: string; chip: string; shadow: string }> = {
-  cyan: { text: "text-neon-cyan", border: "border-neon-cyan/50", chip: "bg-neon-cyan text-black", shadow: "shadow-glow-cyan" },
-  magenta: { text: "text-neon-magenta", border: "border-neon-magenta/50", chip: "bg-neon-magenta text-black", shadow: "shadow-glow-magenta" },
-  yellow: { text: "text-neon-yellow", border: "border-neon-yellow/50", chip: "bg-neon-yellow text-black", shadow: "shadow-glow-yellow" },
-  green: { text: "text-neon-green", border: "border-neon-green/50", chip: "bg-neon-green text-black", shadow: "shadow-glow-green" },
+  cyan: { text: "text-amber", border: "border-amber/50", chip: "bg-amber text-black", shadow: "shadow-glow-amber" },
+  magenta: { text: "text-burn", border: "border-burn/50", chip: "bg-burn text-black", shadow: "shadow-glow-burn" },
+  yellow: { text: "text-amber-hi", border: "border-amber-hi/50", chip: "bg-amber-hi text-black", shadow: "shadow-glow-amber" },
+  green: { text: "text-cash", border: "border-cash/50", chip: "bg-cash text-black", shadow: "shadow-glow-cash" },
 };
 
 interface ActiveTicket {
@@ -53,11 +53,11 @@ export function ScratchCards() {
 
   return (
     <section className="mt-8">
-      <h2 className="mb-1 font-display text-2xl font-bold tracking-wide text-neon-yellow">
-        🎟️ Tickets à gratter
+      <h2 className="mb-1 font-display text-2xl font-bold tracking-wide text-amber">
+        Tickets à gratter
       </h2>
-      <p className="mb-4 text-xs text-white/60">
-        Jeu solo façon FDJ · résultat pré-tiré, gratte pour révéler · 3 montants identiques = tu gagnes ce montant
+      <p className="mb-4">
+        <span className="tag">SYS:// tirage pré-calculé — gratte pour révéler — 3 montants identiques = gain</span>
       </p>
 
       {err && <p className="mb-3 text-sm text-red-400">{err}</p>}
@@ -97,18 +97,22 @@ function TicketCard({ ticket, onBuy, loading }: { ticket: ScratchTicket; onBuy: 
 
       <div className="mb-3 space-y-0.5 font-mono text-[11px] text-white/70">
         <div>
-          Jackpot : <span className={c.text}>{formatChips(jackpot)}</span>
+          Jackpot : <span className={`stat ${c.text}`}>{formatChips(jackpot)}</span>
         </div>
-        <div>Gagnant : 1 sur {odds.oneInN.toFixed(1)}</div>
-        <button onClick={() => setShowOdds((s) => !s)} className="text-neon-cyan/70 underline">
+        <div>
+          Gagnant : 1 sur <span className="stat">{odds.oneInN.toFixed(1)}</span>
+        </div>
+        <button onClick={() => setShowOdds((s) => !s)} className="text-amber/70 underline">
           {showOdds ? "masquer les probas" : "voir les probas"}
         </button>
         {showOdds && (
           <ul className="mt-1 space-y-0.5 text-white/60">
             {odds.table.map((row) => (
               <li key={row.amount} className="flex justify-between">
-                <span>{formatChips(row.amount)}</span>
-                <span>1 sur {Math.round(row.oneInN)}</span>
+                <span className="stat">{formatChips(row.amount)}</span>
+                <span>
+                  1 sur <span className="stat">{Math.round(row.oneInN)}</span>
+                </span>
               </li>
             ))}
           </ul>
@@ -147,13 +151,13 @@ function ScratchOverlay({ active, onClose }: { active: ActiveTicket; onClose: ()
           {revealed ? (
             prize > 0 ? (
               <div className="animate-result">
-                <div className="stat text-3xl font-black text-neon-yellow">
-                  🎉 +{formatChips(prize)}
+                <div className="stat text-3xl font-black text-cash">
+                  +{formatChips(prize)}
                 </div>
-                <div className="text-xs text-white/60">Bravo, gain crédité !</div>
+                <div className="text-xs text-white/60">// gain crédité au registre</div>
               </div>
             ) : (
-              <div className="text-lg font-semibold text-white/50">Perdu — retente ta chance !</div>
+              <div className="text-lg font-semibold text-rl-red">Perdu — retente ta chance</div>
             )
           ) : (
             <div className="text-xs text-white/50">Gratte la zone pour révéler le résultat…</div>
@@ -192,15 +196,15 @@ function ScratchCard({
     if (!cv) return;
     const ctx = cv.getContext("2d");
     if (!ctx) return;
-    // Feuille à gratter (dégradé métallique néon).
+    // Feuille à gratter (foil ambre sombre).
     const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
-    g.addColorStop(0, "#3a2a5e");
-    g.addColorStop(0.5, "#7a5ab0");
-    g.addColorStop(1, "#2a1a4d");
+    g.addColorStop(0, "#2e2210");
+    g.addColorStop(0.5, "#6b4e14");
+    g.addColorStop(1, "#1c1408");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, SIZE, SIZE);
-    // Motif holographique
-    ctx.strokeStyle = "rgba(0,240,255,0.18)";
+    // Hachures phosphore
+    ctx.strokeStyle = "rgba(255,176,0,0.16)";
     ctx.lineWidth = 2;
     for (let i = -SIZE; i < SIZE; i += 16) {
       ctx.beginPath();
@@ -208,7 +212,7 @@ function ScratchCard({
       ctx.lineTo(i + SIZE, SIZE);
       ctx.stroke();
     }
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fillStyle = "rgba(255,230,170,0.55)";
     ctx.font = "bold 20px monospace";
     ctx.textAlign = "center";
     ctx.fillText("✦ GRATTE ICI ✦", SIZE / 2, SIZE / 2);
@@ -263,16 +267,16 @@ function ScratchCard({
   return (
     <div className="relative mx-auto" style={{ width: SIZE, height: SIZE }}>
       {/* Grille révélée en dessous */}
-      <div className="absolute inset-0 grid grid-cols-3 gap-1 rounded-lg bg-ink-900/80 p-1">
+      <div className="absolute inset-0 grid grid-cols-3 gap-1 bg-carbon-900/80 p-1">
         {grid.map((amt, i) => {
           const isWin = revealed && prize > 0 && amt === prize;
           return (
             <div
               key={i}
-              className={`flex items-center justify-center rounded font-mono text-sm font-bold ${
+              className={`stat flex items-center justify-center rounded-sm text-sm font-bold ${
                 isWin
                   ? `${c.chip} ${c.shadow} animate-result`
-                  : "bg-ink-700 text-white/80"
+                  : "bg-carbon-700 text-white/80"
               }`}
             >
               {formatChips(amt)}
@@ -286,7 +290,7 @@ function ScratchCard({
         ref={canvasRef}
         width={SIZE}
         height={SIZE}
-        className="absolute inset-0 h-full w-full cursor-grab touch-none rounded-lg"
+        className="absolute inset-0 h-full w-full cursor-grab touch-none"
         onPointerDown={(e) => {
           drawing.current = true;
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -300,9 +304,9 @@ function ScratchCard({
       {!revealed && (
         <button
           onClick={revealAll}
-          className="absolute -bottom-9 left-1/2 -translate-x-1/2 text-xs text-neon-cyan/70 underline"
+          className="absolute -bottom-9 left-1/2 -translate-x-1/2 text-xs text-amber/70 underline"
         >
-          tout révéler
+          // tout révéler
         </button>
       )}
     </div>

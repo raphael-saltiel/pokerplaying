@@ -122,13 +122,13 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
     <div className="card-surface p-4">
       {/* Message / phase */}
       <div className="mb-4 flex flex-col items-center gap-1 text-center">
-        <span className="rounded-full bg-black/40 px-4 py-1 text-sm text-gold">{state.message}</span>
-        {phaseLabel && <span className="text-xs text-white/60">{phaseLabel}</span>}
+        <span className="bg-carbon-800 px-4 py-1 text-sm text-amber">{state.message}</span>
+        {phaseLabel && <span className="tag">{phaseLabel}</span>}
       </div>
 
       {/* Croupier */}
       <div className="mb-6 flex flex-col items-center">
-        <div className="mb-1 text-xs uppercase tracking-wide text-white/50">Croupier</div>
+        <div className="tag mb-1">SYS:// Croupier</div>
         <div className="flex gap-1.5">
           {state.dealer.cards.length === 0 && <div className="playing-card back opacity-30" />}
           {state.dealer.cards.map((c, i) => {
@@ -141,7 +141,7 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
           })}
         </div>
         {state.dealer.cards.length > 0 && (
-          <div className="mt-1 text-sm font-semibold text-white/80">
+          <div className="stat mt-1 text-sm text-white/80">
             {dealerTotal}
             {state.dealer.hidden ? " +" : ""}
           </div>
@@ -210,7 +210,7 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
             {mySeat ? (
               <>
                 <div className="flex flex-wrap items-center justify-center gap-2">
-                  <span className="text-sm text-white/70">Jeton :</span>
+                  <span className="tag">Jeton //</span>
                   {CHIPS.map((c) => (
                     <button
                       key={c}
@@ -239,7 +239,7 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
                 </div>
                 {/* Mises rapides */}
                 <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-                  <span className="text-white/50">Rapide :</span>
+                  <span className="tag">Rapide //</span>
                   {[100, 250, 500, 1000].map((amt) => (
                     <button
                       key={amt}
@@ -252,14 +252,14 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
                   ))}
                 </div>
                 <p className="text-xs text-white/60">
-                  Ta mise : <span className="text-gold">{formatChips(mySeat.baseBet)}</span>
+                  Ta mise : <span className="stat text-amber">{formatChips(mySeat.baseBet)}</span>
                 </p>
                 <label className="flex items-center gap-2 text-xs text-white/70">
                   <input
                     type="checkbox"
                     checked={autoRebet}
                     onChange={(e) => setAutoRebet(e.target.checked)}
-                    className="accent-gold"
+                    className="accent-amber"
                   />
                   Mise automatique (rejoue la même mise à chaque tour)
                 </label>
@@ -272,7 +272,7 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
               disabled={busy || !anyBet}
               className="btn-gold mt-1 w-full max-w-xs"
             >
-              🃏 Distribuer
+              Distribuer
             </button>
           </div>
         )}
@@ -316,7 +316,7 @@ export function BlackjackTable({ code, state: raw }: { code: string; state: Blac
             <button onClick={() => call("/api/blackjack/leave", { code, playerId: player!.id })} disabled={busy || !mySeat} className="btn-ghost text-xs">
               Quitter la table
             </button>
-            <p className="text-xs text-white/50">Nouveau tour automatique…</p>
+            <p className="text-xs text-white/50">// nouveau tour automatique…</p>
           </div>
         )}
       </div>
@@ -350,8 +350,8 @@ function SeatView({
       <button
         onClick={canSit ? onSit : undefined}
         disabled={!canSit || busy}
-        className={`flex min-h-[13rem] flex-col items-center justify-center rounded-xl border border-dashed text-sm ${
-          canSit ? "border-gold/50 text-gold hover:bg-gold/10" : "border-white/10 text-white/30"
+        className={`flex min-h-[13rem] flex-col items-center justify-center border border-dashed text-sm ${
+          canSit ? "border-amber/50 text-amber hover:bg-amber/10" : "border-white/10 text-white/30"
         }`}
       >
         {canSit ? "+ S'asseoir" : `Place ${index + 1}`}
@@ -366,37 +366,37 @@ function SeatView({
         (seat.insuranceResult === "win" ? seat.insurance * 2 : seat.insuranceResult === "lose" ? -seat.insurance : 0)
       : null;
   const borderCls = isTurnSeat
-    ? "turn-active border-neon-cyan"
+    ? "turn-active border-amber"
     : net != null
     ? net > 0
-      ? "border-neon-green shadow-glow-green"
+      ? "border-cash shadow-glow-cash"
       : net < 0
-      ? "border-[#ff1f5a] shadow-[0_0_18px_rgba(255,31,90,0.45)]"
+      ? "border-rl-red shadow-glow-burn"
       : "border-white/30"
     : isMe
-    ? "border-neon-cyan/40"
+    ? "border-amber/40"
     : "border-white/15";
 
   return (
-    <div className={`relative flex min-h-[13rem] flex-col items-center justify-between rounded-xl border p-3 ${borderCls} bg-black/30`}>
+    <div className={`relative flex min-h-[13rem] flex-col items-center justify-between border p-3 ${borderCls} bg-carbon-900/60`}>
       {net != null && net !== 0 && (
         <span
-          className={`animate-result absolute -top-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-            net > 0 ? "bg-neon-green text-black" : "bg-[#ff1f5a] text-white"
+          className={`stat animate-result absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold ${
+            net > 0 ? "bg-cash text-black" : "bg-rl-red text-white"
           }`}
         >
           {net > 0 ? `+${formatChips(net)}` : formatChips(net)}
         </span>
       )}
       <div className="text-center">
-        <div className={`text-sm font-semibold ${isMe ? "text-gold" : "text-white/90"}`}>{seat.name}</div>
+        <div className={`text-sm font-semibold ${isMe ? "text-amber" : "text-white/90"}`}>{seat.name}</div>
         {phase === "betting" ? (
-          <div className="text-xs text-white/60">{formatChips(seat.baseBet)} jetons</div>
+          <div className="stat text-xs text-white/60">{formatChips(seat.baseBet)} jetons</div>
         ) : seat.insurance > 0 ? (
-          <div className="text-[10px] text-white/50">
+          <div className="stat text-[10px] text-white/50">
             assur. {formatChips(seat.insurance)}
-            {seat.insuranceResult === "win" && <span className="text-emerald-400"> ✓</span>}
-            {seat.insuranceResult === "lose" && <span className="text-red-400"> ✗</span>}
+            {seat.insuranceResult === "win" && <span className="text-cash"> ✓</span>}
+            {seat.insuranceResult === "lose" && <span className="text-rl-red"> ✗</span>}
           </div>
         ) : null}
       </div>
@@ -422,7 +422,7 @@ function SeatView({
 function HandView({ hand, active, compact }: { hand: BJHand; active: boolean; compact: boolean }) {
   const total = handTotal(hand.cards).total;
   return (
-    <div className={`flex flex-col items-center rounded-lg p-1 ${active ? "bg-gold/15 ring-1 ring-gold" : ""}`}>
+    <div className={`flex flex-col items-center rounded-sm p-1 ${active ? "bg-amber/15 ring-1 ring-amber" : ""}`}>
       <div className={`flex justify-center ${compact ? "gap-0.5" : "gap-1"}`}>
         {hand.cards.map((c, i) =>
           compact ? (
@@ -435,20 +435,20 @@ function HandView({ hand, active, compact }: { hand: BJHand; active: boolean; co
         )}
       </div>
       <div className="mt-1 text-center text-xs">
-        {hand.cards.length > 0 && <span className="font-bold text-white/80">{total}</span>}
-        {hand.bet > 0 && <span className="ml-1 text-white/40">({formatChips(hand.bet)})</span>}
-        {hand.result && <span className={`ml-1 ${resultColor(hand.result)}`}>{resultLabel(hand.result, hand.payout)}</span>}
-        {!hand.result && hand.status === "blackjack" && <span className="ml-1 text-gold">BJ</span>}
-        {!hand.result && hand.status === "bust" && <span className="ml-1 text-red-400">Saute</span>}
+        {hand.cards.length > 0 && <span className="stat font-bold text-white/80">{total}</span>}
+        {hand.bet > 0 && <span className="stat ml-1 text-white/40">({formatChips(hand.bet)})</span>}
+        {hand.result && <span className={`stat ml-1 ${resultColor(hand.result)}`}>{resultLabel(hand.result, hand.payout)}</span>}
+        {!hand.result && hand.status === "blackjack" && <span className="ml-1 text-amber-hi">BJ</span>}
+        {!hand.result && hand.status === "bust" && <span className="ml-1 text-rl-red">Saute</span>}
       </div>
     </div>
   );
 }
 
 function resultColor(r: NonNullable<BJHand["result"]>): string {
-  if (r === "lose" || r === "surrender") return "text-red-400";
+  if (r === "lose" || r === "surrender") return "text-rl-red";
   if (r === "push") return "text-white/60";
-  return "text-emerald-400";
+  return "text-cash";
 }
 function resultLabel(r: NonNullable<BJHand["result"]>, payout: number): string {
   if (r === "blackjack") return `BJ +${formatChips(payout)}`;

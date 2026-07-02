@@ -58,10 +58,10 @@ export function Slots() {
 
   return (
     <div className="card-surface p-5">
-      <h3 className="mb-1 font-display text-xl font-bold text-neon-cyan">🎰 Machine à sous</h3>
-      <p className="mb-4 text-xs text-white/60">Jeu solo · 3 identiques = jackpot (💎 ×100)</p>
+      <h3 className="mb-1 font-display text-xl font-bold text-amber">🎰 Machine à sous</h3>
+      <p className="tag mb-4">SYS:// jeu solo · 3 identiques = jackpot 💎 ×100</p>
 
-      <div className="mb-4 flex justify-center gap-3 rounded-xl bg-ink-900/60 p-4">
+      <div className="mb-4 flex justify-center gap-3 border border-amber/20 bg-carbon-900/60 p-4">
         {reels.map((r, i) => (
           <SlotReel key={i} symbol={r} spinning={spinning} idx={i} />
         ))}
@@ -69,7 +69,7 @@ export function Slots() {
 
       {win && (
         <div className="mb-3 text-center">
-          <span className="stat text-3xl font-black text-neon-yellow">×{win.mult}</span>
+          <span className="stat text-3xl font-black text-amber-hi">×{win.mult}</span>
         </div>
       )}
 
@@ -80,16 +80,24 @@ export function Slots() {
             onClick={() => setBet(b)}
             className={bet === b ? "btn-gold px-3 py-1 text-sm" : "btn-dark px-3 py-1 text-sm"}
           >
-            {b}
+            <span className="stat">{b}</span>
           </button>
         ))}
       </div>
 
       <button onClick={spin} disabled={spinning || !player} className="btn-gold w-full">
-        {spinning ? "🎲 …" : `Lancer (${bet})`}
+        {spinning ? "🎲 …" : <>Lancer (<span className="stat">{bet}</span>)</>}
       </button>
 
-      {msg && <p className="mt-3 text-center text-sm text-neon-cyan">{msg}</p>}
+      {msg && (
+        <p
+          className={`mt-3 text-center text-sm ${
+            win ? "text-cash" : msg.startsWith("Perdu") ? "text-rl-red" : "text-white/70"
+          }`}
+        >
+          {msg}
+        </p>
+      )}
       {err && <p className="mt-3 text-center text-sm text-red-400">{err}</p>}
 
       <Paytable />
@@ -135,7 +143,7 @@ function Paytable() {
     <div className="mt-4 border-t border-white/10 pt-3">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between text-sm font-semibold text-white/80 hover:text-gold"
+        className="flex w-full items-center justify-between text-sm font-semibold text-white/80 hover:text-amber"
       >
         <span>📖 Guide &amp; table des gains</span>
         <span className="text-xs text-white/50">{open ? "▲ masquer" : "▼ afficher"}</span>
@@ -144,10 +152,10 @@ function Paytable() {
       {open && (
         <div className="mt-3 space-y-3 text-sm">
           <div>
-            <p className="mb-1 font-semibold text-gold">Comment jouer</p>
+            <p className="tag mb-1">01 // Comment jouer</p>
             <ol className="list-decimal space-y-0.5 pl-5 text-white/75">
               <li>Choisis le montant de ta mise (10, 50, 100 ou 500).</li>
-              <li>Clique sur <span className="text-gold">Lancer</span> : les 3 rouleaux tournent.</li>
+              <li>Clique sur <span className="text-amber">Lancer</span> : les 3 rouleaux tournent.</li>
               <li>Tu gagnes selon la combinaison obtenue (voir ci-dessous).</li>
             </ol>
             <p className="mt-1 text-xs text-white/50">
@@ -157,7 +165,7 @@ function Paytable() {
           </div>
 
           <div>
-            <p className="mb-1 font-semibold text-gold">Table des gains</p>
+            <p className="tag mb-1">02 // Table des gains</p>
             <table className="w-full text-left">
               <thead>
                 <tr className="text-xs text-white/50">
@@ -171,13 +179,13 @@ function Paytable() {
                   <tr key={row.label} className="border-t border-white/5">
                     <td className="py-1 text-lg">{row.combo}</td>
                     <td className="py-1 text-xs text-white/60">{row.label}</td>
-                    <td className="py-1 text-right font-semibold text-gold">{row.mult}</td>
+                    <td className="stat py-1 text-right font-semibold text-amber">{row.mult}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <p className="mt-2 text-xs text-white/50">
-              Exemple : mise de 100 avec 💎💎💎 → <span className="text-gold">10 000 jetons</span> !
+              Exemple : mise de 100 avec 💎💎💎 → <span className="stat text-cash">10 000 jetons</span> !
               Une seule 🍒 te rend ta mise (gain net nul).
             </p>
           </div>

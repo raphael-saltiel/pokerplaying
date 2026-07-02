@@ -124,12 +124,18 @@ export function PokerTable({ code, state: raw }: { code: string; state: PokerSta
     <div className="card-surface p-4">
       {/* Bandeau infos */}
       <div className="mb-3 flex items-center justify-between text-sm">
-        <span className="text-white/70">
-          Blindes <span className="text-gold">{state.smallBlind}/{state.bigBlind}</span>
-          {state.handNo > 0 && <span className="ml-2 text-white/40">Main #{state.handNo}</span>}
+        <span className="flex items-center gap-2 text-white/70">
+          <span className="tag">SYS:// BLINDES</span>
+          <span className="stat text-amber">{state.smallBlind}/{state.bigBlind}</span>
+          {state.handNo > 0 && (
+            <span className="ml-2 flex items-center gap-1 text-white/40">
+              <span className="tag">MAIN //</span>
+              <span className="stat text-amber">#{state.handNo}</span>
+            </span>
+          )}
         </span>
         {secondsLeft != null && (
-          <span className="stat rounded-full bg-black/40 px-3 py-1 text-neon-cyan">⏱ {secondsLeft}s</span>
+          <span className="stat bg-black/40 px-3 py-1 text-amber">T-{secondsLeft}s</span>
         )}
       </div>
 
@@ -146,8 +152,8 @@ export function PokerTable({ code, state: raw }: { code: string; state: PokerSta
       )}
 
       {/* Tapis : board + pot */}
-      <div className="mb-4 rounded-2xl border border-gold/20 bg-felt-dark/60 p-5">
-        <div className="mb-3 text-center text-sm text-white/70">{state.message}</div>
+      <div className="mb-4 border border-amber/20 bg-carbon-900/60 p-5">
+        <div className="mb-3 text-center font-mono text-sm text-white/70">{state.message}</div>
         <div className="mb-3 flex justify-center gap-1.5">
           {[0, 1, 2, 3, 4].map((i) => {
             const c = state.board[i];
@@ -159,8 +165,8 @@ export function PokerTable({ code, state: raw }: { code: string; state: PokerSta
           })}
         </div>
         <div className="text-center">
-          <span className="rounded-full bg-black/50 px-4 py-1 font-semibold text-gold">
-            Pot : {formatChips(state.pot)}
+          <span className="stat bg-black/40 px-4 py-1 text-amber">
+            POT // {formatChips(state.pot)}
           </span>
         </div>
       </div>
@@ -169,8 +175,8 @@ export function PokerTable({ code, state: raw }: { code: string; state: PokerSta
       {state.phase === "showdown" && state.winners && state.winners.length > 0 && (
         <div className="mb-4 text-center text-sm">
           {state.winners.map((w) => (
-            <span key={w.playerId} className="mx-1 inline-block rounded-full bg-emerald-600/30 px-3 py-1 text-emerald-200">
-              🏆 {w.name} +{formatChips(w.amount)} {w.hand ? `(${w.hand})` : ""}
+            <span key={w.playerId} className="mx-1 inline-block border border-cash/40 bg-cash/15 px-3 py-1 text-cash">
+              ▸ {w.name} <span className="stat">+{formatChips(w.amount)}</span> {w.hand ? `(${w.hand})` : ""}
             </span>
           ))}
         </div>
@@ -298,9 +304,9 @@ function ActionBar({
               step={state.bigBlind}
               value={raiseTo}
               onChange={(e) => setRaiseTo(Number(e.target.value))}
-              className="flex-1 accent-neon-cyan"
+              className="flex-1 accent-amber"
             />
-            <span className="stat w-20 text-right text-sm text-neon-cyan">{formatChips(raiseTo)}</span>
+            <span className="stat w-20 text-right text-sm text-amber">{formatChips(raiseTo)}</span>
           </div>
         </>
       )}
@@ -354,8 +360,10 @@ function SitPanel({
   const max = Math.min(player?.balance ?? 0, 10000);
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="text-sm text-white/80">
-        Place {seatTarget + 1} · Cave : <span className="text-gold">{formatChips(buyIn)}</span>
+      <div className="flex items-center gap-2 text-sm text-white/80">
+        <span className="tag">01 // PLACE {seatTarget + 1}</span>
+        <span>Cave&nbsp;:</span>
+        <span className="stat text-amber">{formatChips(buyIn)}</span>
       </div>
       <input
         type="range"
@@ -364,7 +372,7 @@ function SitPanel({
         step={100}
         value={Math.min(buyIn, Math.max(500, max))}
         onChange={(e) => setBuyIn(Number(e.target.value))}
-        className="w-full max-w-xs accent-gold"
+        className="w-full max-w-xs accent-amber"
       />
       {err && <p className="text-sm text-red-400">{err}</p>}
       <div className="flex gap-2">
@@ -408,8 +416,8 @@ function PokerSeatView({
       <button
         onClick={canSit ? onSit : undefined}
         disabled={!canSit || busy}
-        className={`flex h-28 flex-col items-center justify-center rounded-xl border border-dashed text-sm ${
-          canSit ? "border-gold/50 text-gold hover:bg-gold/10" : "border-white/10 text-white/30"
+        className={`flex h-28 flex-col items-center justify-center border border-dashed font-mono text-sm ${
+          canSit ? "border-amber/50 text-amber hover:bg-amber/10" : "border-white/10 text-white/30"
         }`}
       >
         {canSit ? "+ S'asseoir" : `Place ${index + 1}`}
@@ -424,20 +432,22 @@ function PokerSeatView({
 
   return (
     <div
-      className={`relative flex h-28 flex-col items-center justify-between rounded-xl border p-2 ${
-        isTurn ? "turn-active border-neon-cyan" : isMe ? "border-neon-cyan/40" : "border-white/15"
-      } ${seat.folded ? "opacity-50" : ""} bg-black/30`}
+      className={`relative flex h-28 flex-col items-center justify-between border p-2 ${
+        isTurn ? "turn-active border-amber" : isMe ? "border-amber/40" : "border-amber/10"
+      } ${seat.folded ? "opacity-50" : ""} bg-carbon-900/60`}
     >
       {isButton && (
-        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-black">
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber text-[10px] font-bold text-black">
           D
         </span>
       )}
       <div className="text-center">
-        <div className={`text-sm font-semibold ${isMe ? "text-gold" : "text-white/90"}`}>
-          {seat.name} {seat.allIn && <span className="text-red-300">(tapis)</span>}
+        <div className={`text-sm font-semibold ${isMe ? "text-amber" : "text-white/90"}`}>
+          {seat.name} {seat.allIn && <span className="text-burn">(tapis)</span>}
         </div>
-        <div className="text-xs text-white/60">{formatChips(seat.stack)} jetons</div>
+        <div className="text-xs text-white/60">
+          <span className="stat">{formatChips(seat.stack)}</span> jetons
+        </div>
       </div>
 
       <div className="flex gap-0.5">
@@ -455,8 +465,8 @@ function PokerSeatView({
           ))}
       </div>
 
-      <div className="h-4 text-center text-[11px] text-white/70">
-        {seat.bet > 0 && <span className="text-gold">mise {formatChips(seat.bet)}</span>}
+      <div className="h-4 text-center font-mono text-[11px] text-white/70">
+        {seat.bet > 0 && <span className="stat text-amber-hi">mise {formatChips(seat.bet)}</span>}
         {seat.bet === 0 && seat.lastAction && <span>{seat.lastAction}</span>}
       </div>
     </div>

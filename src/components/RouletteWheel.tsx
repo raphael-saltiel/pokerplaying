@@ -18,9 +18,9 @@ function polar(r: number, deg: number) {
 
 function sliceColor(n: number): string {
   const c = colorOf(n);
-  if (c === "green") return "#1eae4e";
-  if (c === "red") return "#c81e46";
-  return "#160c22";
+  if (c === "green") return "#1f8a4a";
+  if (c === "red") return "#c8321e";
+  return "#161009";
 }
 
 export function RouletteWheel({ result, spinId }: { result: number | null; spinId: number }) {
@@ -78,8 +78,8 @@ export function RouletteWheel({ result, spinId }: { result: number | null; spinI
 
   return (
     <div className="relative mx-auto mb-3" style={{ width: SIZE, height: SIZE }}>
-      {/* Halo néon */}
-      <div className="pointer-events-none absolute inset-2 rounded-full shadow-[0_0_40px_rgba(0,240,255,0.35),inset_0_0_30px_rgba(255,0,230,0.2)]" />
+      {/* Halo phosphore */}
+      <div className="pointer-events-none absolute inset-2 rounded-full shadow-[0_0_40px_rgba(255,176,0,0.3),inset_0_0_30px_rgba(255,77,28,0.15)]" />
 
       {/* Rotor */}
       <div
@@ -90,15 +90,15 @@ export function RouletteWheel({ result, spinId }: { result: number | null; spinI
         }}
       >
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-          <circle cx={CX} cy={CY} r={R_OUT + 4} fill="#05010f" stroke="url(#rim)" strokeWidth="3" />
+          <circle cx={CX} cy={CY} r={R_OUT + 4} fill="#161009" stroke="url(#rim)" strokeWidth="3" />
           <defs>
             <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#00f0ff" />
-              <stop offset="100%" stopColor="#ff00e6" />
+              <stop offset="0%" stopColor="#ffb000" />
+              <stop offset="100%" stopColor="#ff4d1c" />
             </linearGradient>
           </defs>
           {slices.map((s, i) => (
-            <path key={i} d={s.d} fill={s.fill} stroke="#e3b341" strokeWidth="0.6" />
+            <path key={i} d={s.d} fill={s.fill} stroke="rgba(255,176,0,0.4)" strokeWidth="0.6" />
           ))}
           {labels.map((l, i) => (
             <text
@@ -115,19 +115,19 @@ export function RouletteWheel({ result, spinId }: { result: number | null; spinI
               {l.n}
             </text>
           ))}
-          <circle cx={CX} cy={CY} r={R_IN} fill="#0a0418" stroke="url(#rim)" strokeWidth="2" />
+          <circle cx={CX} cy={CY} r={R_IN} fill="#161009" stroke="url(#rim)" strokeWidth="2" />
         </svg>
       </div>
 
       {/* Repère + bille (fixes) */}
-      <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 border-x-[9px] border-t-[14px] border-x-transparent border-t-neon-yellow drop-shadow-[0_0_6px_var(--neon-yellow)]" />
+      <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 border-x-[9px] border-t-[14px] border-x-transparent border-t-amber-hi drop-shadow-[0_0_6px_rgba(255,176,0,0.7)]" />
       <div className="pointer-events-none absolute left-1/2 top-[14px] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_#fff]" />
 
       {/* Résultat au centre */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <span
           className="stat text-3xl font-black"
-          style={{ color: result == null ? "rgba(255,255,255,0.3)" : sliceColor(result) === "#160c22" ? "#fff" : sliceColor(result) }}
+          style={{ color: result == null ? "rgba(255,255,255,0.3)" : sliceColor(result) === "#161009" ? "#fff" : sliceColor(result) }}
         >
           {result ?? "–"}
         </span>
