@@ -13,37 +13,44 @@ import {
 export const dynamic = "force-dynamic";
 
 // Récupère (ou génère une seule fois) les numéros gagnants d'un tirage.
+// Idempotent et sûr face aux appels concurrents : l'insertion utilise
+// ON CONFLICT DO NOTHING, puis on relit la ligne qui a "gagné" la course.
 async function ensureDraw(date: string): Promise<number[]> {
-  const { data } = await supabaseAdmin
-    .from("lottery_draws")
-    .select("numbers")
-    .eq("draw_date", date)
-    .maybeSingle();
-  if (data) return data.numbers as number[];
-
-  const numbers = generateNumbers();
-  const { error } = await supabaseAdmin.from("lottery_draws").insert({ draw_date: date, numbers });
-  if (error) {
-    // Conflit d'unicité : généré en parallèle, on relit.
-    const { data: d2 } = await supabaseAdmin
+  const read = async (): Promise<number[] | null> => {
+    const { data, error } = await supabaseAdmin
       .from("lottery_draws")
       .select("numbers")
       .eq("draw_date", date)
       .maybeSingle();
-    if (d2) return d2.numbers as number[];
-    throw new Error(error.message);
-  }
-  return numbers;
+    if (error) throw new Error(error.message);
+    return (data?.numbers as number[]) ?? null;
+  };
+
+  const existing = await read();
+  if (existing) return existing;
+
+  const numbers = generateNumbers();
+  const { error } = await supabaseAdmin
+    .from("lottery_draws")
+    .upsert({ draw_date: date, numbers }, { onConflict: "draw_date", ignoreDuplicates: true });
+  if (error) throw new Error(error.message);
+
+  // Relecture systématique : renvoie les numéros réellement stockés,
+  // qu'ils viennent de nous ou d'une requête concurrente.
+  const stored = await read();
+  if (!stored) throw new Error("Tirage introuvable après création.");
+  return stored;
 }
 
 // Résout un tirage passé : crédite chaque ticket gagnant, une seule fois.
 async function resolveDraw(date: string) {
   const winning = await ensureDraw(date);
-  const { data: tickets } = await supabaseAdmin
+  const { data: tickets, error: eTickets } = await supabaseAdmin
     .from("lottery_tickets")
     .select("id, player_id, numbers")
     .eq("draw_date", date)
     .eq("prize", -1);
+  if (eTickets) throw new Error(eTickets.message);
 
   for (const t of tickets ?? []) {
     const prize = prizeFor(countMatches(t.numbers as number[], winning));
@@ -67,7 +74,9 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     const today = drawDateOf(now);
 
-    // Résout les tirages passés encore en attente.
+    // Résout les tirages passés encore en attente. Une résolution qui échoue
+    // (course concurrente, hoquet réseau) ne doit pas bloquer l'affichage :
+    // les tickets restent en attente et seront résolus à l'appel suivant.
     const { data: pending, error: ePending } = await supabaseAdmin
       .from("lottery_tickets")
       .select("draw_date")
@@ -75,7 +84,13 @@ export async function GET(req: NextRequest) {
       .eq("prize", -1);
     if (ePending) throw new Error(ePending.message);
     const dates = [...new Set((pending ?? []).map((p) => p.draw_date as string))];
-    for (const dt of dates) await resolveDraw(dt);
+    for (const dt of dates) {
+      try {
+        await resolveDraw(dt);
+      } catch (e) {
+        console.error(`[lottery] résolution ${dt} échouée:`, e);
+      }
+    }
 
     // Mes tickets du jour (en attente du tirage).
     const { data: mine } = playerId
