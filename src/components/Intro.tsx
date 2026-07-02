@@ -32,7 +32,7 @@ export function Intro() {
       <div className="intro-bar">
         <span />
       </div>
-      <div className="intro-sub">// INITIALISATION DU SYSTÈME…</div>
+      <div className="intro-sub">LEDGER.SYS // OUVERTURE DE SESSION…</div>
     </div>
   );
 }

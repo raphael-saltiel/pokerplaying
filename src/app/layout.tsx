@@ -1,25 +1,27 @@
 import type { Metadata } from "next";
-import { Orbitron, Share_Tech_Mono } from "next/font/google";
+import { Unbounded, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { PlayerProvider } from "@/components/PlayerProvider";
 
-const display = Orbitron({
+// Display : Unbounded — dessin large, asymétrique, quasi brutaliste.
+const display = Unbounded({
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
   variable: "--font-display",
   display: "swap",
 });
 
-const mono = Share_Tech_Mono({
+// Données & corps : IBM Plex Mono — esprit terminal comptable.
+const mono = IBM_Plex_Mono({
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "500", "600", "700"],
   variable: "--font-mono",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "CASINO ROYALE // NEON",
-  description: "Casino multijoueur cyberpunk en temps réel.",
+  title: "CASINO ROYALE // LEDGER.SYS",
+  description: "Casino multijoueur clandestin en temps réel. Jetons fictifs.",
 };
 
 export default function RootLayout({

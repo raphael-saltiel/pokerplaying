@@ -41,8 +41,8 @@ function Room({ code }: { code: string }) {
     <div className="mx-auto max-w-5xl px-3 py-5 sm:px-4">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <span className="text-xs text-white/50">Code de la table</span>
-          <div className="font-display text-2xl font-bold tracking-widest text-gold">
+          <span className="tag">TBL:// code de la table</span>
+          <div className="stat font-display text-2xl font-bold tracking-widest text-amber">
             {code}
           </div>
         </div>

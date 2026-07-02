@@ -1,49 +1,84 @@
 import type { Config } from "tailwindcss";
 
+// ============================================================
+//  LEDGER.SYS — design system "console de bookmaker clandestin"
+//  Palette resserrée : ambre phosphore (système), burn (alerte),
+//  vert cash (STRICTEMENT réservé à l'argent gagné).
+// ============================================================
+
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
-        // Fonds profonds cyberpunk
-        ink: {
-          DEFAULT: "#05010f",
-          900: "#05010f",
-          800: "#0a0418",
-          700: "#120a24",
-          600: "#1a0f33",
+        // Surfaces "carbone chaud"
+        carbon: {
+          950: "#0b0906",
+          900: "#12100a",
+          800: "#1a160d",
+          700: "#242013",
+          600: "#2e2a18",
         },
-        // Accents néon
+        // Couleur système : ambre phosphore
+        amber: {
+          DEFAULT: "#ffb000",
+          hi: "#ffd23f",
+          dim: "#8a6a1f",
+        },
+        // Secondaire / alerte : burn
+        burn: {
+          DEFAULT: "#ff4d1c",
+          dim: "#8f2c10",
+        },
+        // Argent gagné UNIQUEMENT
+        cash: {
+          DEFAULT: "#3dff88",
+          dim: "#1d7a44",
+        },
+        // Rouge "encre" de la roulette
+        "rl-red": "#c8321e",
+        paper: "#f2e8cf",
+
+        // ---- Alias hérités (anciens noms -> nouveau système) ----
         neon: {
-          cyan: "#00f0ff",
-          magenta: "#ff00e6",
-          yellow: "#f4ff00",
-          green: "#39ff14",
-          pink: "#ff2d95",
+          cyan: "#ffb000",
+          magenta: "#ff4d1c",
+          yellow: "#ffd23f",
+          green: "#3dff88",
+          pink: "#ff4d1c",
         },
-        // Remap des anciennes clés pour ne rien casser dans les composants :
-        // "gold" devient le cyan néon (accent principal), "felt" le violet profond.
         gold: {
-          DEFAULT: "#00f0ff",
-          light: "#8bfaff",
-          dark: "#00aeb8",
+          DEFAULT: "#ffb000",
+          light: "#ffd23f",
+          dark: "#8a6a1f",
+        },
+        ink: {
+          DEFAULT: "#0b0906",
+          900: "#12100a",
+          800: "#1a160d",
+          700: "#242013",
+          600: "#2e2a18",
         },
         felt: {
-          DEFAULT: "#160c2b",
-          dark: "#0a0418",
-          light: "#241540",
+          DEFAULT: "#242013",
+          dark: "#12100a",
+          light: "#2e2a18",
         },
       },
       fontFamily: {
-        display: ["var(--font-display)", "Orbitron", "sans-serif"],
+        display: ["var(--font-display)", "sans-serif"],
         mono: ["var(--font-mono)", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 20px rgba(0, 240, 255, 0.45)",
-        "glow-cyan": "0 0 22px rgba(0, 240, 255, 0.55)",
-        "glow-magenta": "0 0 22px rgba(255, 0, 230, 0.55)",
-        "glow-yellow": "0 0 22px rgba(244, 255, 0, 0.5)",
-        "glow-green": "0 0 22px rgba(57, 255, 20, 0.5)",
+        glow: "0 0 18px rgba(255, 176, 0, 0.4)",
+        "glow-amber": "0 0 18px rgba(255, 176, 0, 0.45)",
+        "glow-burn": "0 0 18px rgba(255, 77, 28, 0.45)",
+        "glow-cash": "0 0 18px rgba(61, 255, 136, 0.45)",
+        // alias hérités
+        "glow-cyan": "0 0 18px rgba(255, 176, 0, 0.45)",
+        "glow-magenta": "0 0 18px rgba(255, 77, 28, 0.45)",
+        "glow-yellow": "0 0 18px rgba(255, 210, 63, 0.5)",
+        "glow-green": "0 0 18px rgba(61, 255, 136, 0.45)",
       },
     },
   },
