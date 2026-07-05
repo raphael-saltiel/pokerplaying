@@ -15,7 +15,7 @@ interface Particle {
   vr: number;
 }
 
-const COLORS = ["#ffb000", "#ffd23f", "#3dff88", "#ff4d1c", "#f2e8cf"];
+const COLORS = ["#00F0FF", "#FF2BD6", "#7CFF00", "#EFFBFD"];
 
 let canvas: HTMLCanvasElement | null = null;
 let ctx: CanvasRenderingContext2D | null = null;

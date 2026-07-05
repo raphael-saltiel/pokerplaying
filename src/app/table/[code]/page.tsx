@@ -65,7 +65,7 @@ function ShareButton({ code }: { code: string }) {
     const text = `Rejoins ma table de casino — code ${code} : ${url}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Casino Royale", text, url });
+        await navigator.share({ title: "DARKPOOL://", text, url });
       } else {
         await navigator.clipboard.writeText(url);
         alert("Lien copié !");

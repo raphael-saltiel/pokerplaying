@@ -37,11 +37,13 @@ SUPABASE_SERVICE_ROLE_KEY=...`}
   if (!player) {
     return (
       <div className="mx-auto mt-16 max-w-sm card-surface p-6">
-        <span className="tag mb-2 inline-block">SYS:// IDENTIFICATION</span>
-        <h2 className="mb-1 font-display text-2xl text-amber">ACCÈS // LEDGER.SYS</h2>
+        <span className="tag mb-2 inline-flex items-center gap-2">
+          <span className="live-dot" /> DARKPOOL:// IDENTIFICATION
+        </span>
+        <h2 className="mb-1 font-display text-2xl text-amber">ENTRER DANS LE CERCLE</h2>
         <p className="mb-4 text-sm text-white/70">
-          Choisis un pseudo pour rejoindre la table. Compte crédité de{" "}
-          <span className="stat text-cash">10 000 jetons</span>.
+          Choisis un pseudo pour rejoindre le cercle. Compte crédité de{" "}
+          <span className="stat text-cash">10 000 jetons</span>. Zéro argent réel.
         </p>
         <form
           onSubmit={async (e) => {
@@ -68,7 +70,7 @@ SUPABASE_SERVICE_ROLE_KEY=...`}
           />
           {err && <p className="mb-3 text-sm text-red-400">{err}</p>}
           <button type="submit" disabled={busy || !name.trim()} className="btn-gold w-full">
-            {busy ? "…" : "Entrer dans le registre"}
+            {busy ? "…" : "Entrer dans le cercle"}
           </button>
         </form>
       </div>

@@ -1,4 +1,4 @@
-// Emblème LEDGER.SYS — pique stylisé dans un cadre HUD octogonal,
+// Emblème DARKPOOL:// — pique stylisé dans un cadre HUD octogonal,
 // dégradé ambre -> burn. Réutilisable (header, hero, intro). SVG pur.
 export function Logo({ size = 40, className = "" }: { size?: number; className?: string }) {
   return (
@@ -8,13 +8,13 @@ export function Logo({ size = 40, className = "" }: { size?: number; className?:
       viewBox="0 0 100 100"
       className={className}
       role="img"
-      aria-label="Casino Royale"
+      aria-label="DARKPOOL"
     >
       <defs>
         <linearGradient id="cr-neon" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffd23f" />
-          <stop offset="55%" stopColor="#ffb000" />
-          <stop offset="100%" stopColor="#ff4d1c" />
+          <stop offset="0%" stopColor="#00F0FF" />
+          <stop offset="55%" stopColor="#7bd7ff" />
+          <stop offset="100%" stopColor="#FF2BD6" />
         </linearGradient>
         <filter id="cr-glow" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="2" result="b" />
@@ -28,13 +28,13 @@ export function Logo({ size = 40, className = "" }: { size?: number; className?:
       {/* Cadre octogonal HUD */}
       <path
         d="M30 5 H70 L95 30 V70 L70 95 H30 L5 70 V30 Z"
-        fill="rgba(18, 16, 10, 0.85)"
+        fill="rgba(7, 12, 16, 0.85)"
         stroke="url(#cr-neon)"
         strokeWidth="3"
         filter="url(#cr-glow)"
       />
       {/* Accents de coins */}
-      <path d="M30 5 H45 M5 30 V45 M70 95 H55 M95 70 V55" stroke="#ffb000" strokeWidth="2.5" opacity="0.8" />
+      <path d="M30 5 H45 M5 30 V45 M70 95 H55 M95 70 V55" stroke="#7bd7ff" strokeWidth="2.5" opacity="0.8" />
 
       {/* Pique */}
       <path

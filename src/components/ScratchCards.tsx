@@ -198,13 +198,13 @@ function ScratchCard({
     if (!ctx) return;
     // Feuille à gratter (foil ambre sombre).
     const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
-    g.addColorStop(0, "#2e2210");
-    g.addColorStop(0.5, "#6b4e14");
-    g.addColorStop(1, "#1c1408");
+    g.addColorStop(0, "#0d2a33");
+    g.addColorStop(0.5, "#14515e");
+    g.addColorStop(1, "#091318");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, SIZE, SIZE);
     // Hachures phosphore
-    ctx.strokeStyle = "rgba(255,176,0,0.16)";
+    ctx.strokeStyle = "rgba(0,240,255,0.16)";
     ctx.lineWidth = 2;
     for (let i = -SIZE; i < SIZE; i += 16) {
       ctx.beginPath();
@@ -212,7 +212,7 @@ function ScratchCard({
       ctx.lineTo(i + SIZE, SIZE);
       ctx.stroke();
     }
-    ctx.fillStyle = "rgba(255,230,170,0.55)";
+    ctx.fillStyle = "rgba(200,240,255,0.55)";
     ctx.font = "bold 20px monospace";
     ctx.textAlign = "center";
     ctx.fillText("✦ GRATTE ICI ✦", SIZE / 2, SIZE / 2);

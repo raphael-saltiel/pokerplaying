@@ -59,14 +59,19 @@ function Lobby() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <section className="mb-8 text-center">
-        <Logo size={92} className="mx-auto mb-3 drop-shadow-[0_0_18px_rgba(255,176,0,0.45)]" />
-        <h1 className="font-display text-4xl font-black tracking-widest sm:text-6xl">
-          <span className="glitch" data-text="CASINO ROYALE">
-            CASINO ROYALE
+        <Logo size={92} className="mx-auto mb-3 drop-shadow-[0_0_18px_rgba(0,240,255,0.45)]" />
+        <p className="mb-4">
+          <span className="inline-flex items-center gap-2 rounded-sm border border-burn/45 bg-burn/5 px-3 py-1.5 text-[10px] tracking-[0.2em] text-burn">
+            <span className="live-dot" /> CERCLE PRIVÉ // JETONS FICTIFS — ZÉRO ARGENT RÉEL
+          </span>
+        </p>
+        <h1 className="font-display text-4xl font-bold tracking-widest sm:text-6xl">
+          <span className="glitch" data-text="DARKPOOL://">
+            DARKPOOL<span className="text-amber">://</span>
           </span>
         </h1>
-        <p className="mt-3">
-          <span className="tag">LEDGER.SYS // CASINO CLANDESTIN — JETONS FICTIFS</span>
+        <p className="mt-3 text-sm text-white/60">
+          Ceci n&apos;est pas un casino. <span className="text-amber">C&apos;est le nôtre.</span>
         </p>
       </section>
 
@@ -87,6 +92,9 @@ function Lobby() {
       {err && <p className="mb-4 text-center text-red-400">{err}</p>}
 
       {/* Jeux multijoueurs */}
+      <h2 className="mb-3 font-display text-[13px] font-bold tracking-[0.3em] text-amber">
+        ▸ LA SALLE // MODULES
+      </h2>
       <div className="grid gap-5 sm:grid-cols-3">
         <GameCard
           index="01"

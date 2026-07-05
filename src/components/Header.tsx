@@ -27,14 +27,14 @@ export function Header() {
   }, [player?.balance, player]);
 
   return (
-    <header className="flex items-center justify-between border-b border-amber/15 px-4 py-3 shadow-[0_6px_20px_-12px_rgba(255,176,0,0.35)] sm:px-6">
+    <header className="flex items-center justify-between border-b border-amber/15 px-4 py-3 shadow-[0_6px_20px_-12px_rgba(0,240,255,0.35)] sm:px-6">
       <Link href="/" className="flex items-center gap-2 font-display text-lg font-black tracking-widest sm:text-2xl">
         <Logo size={36} className="shrink-0" />
-        <span className="glitch hidden sm:inline" data-text="CASINO ROYALE">
-          CASINO ROYALE
+        <span className="glitch hidden sm:inline" data-text="DARKPOOL://">
+          DARKPOOL<span className="text-amber">://</span>
         </span>
-        <span className="glitch sm:hidden" data-text="C·R">
-          C·R
+        <span className="glitch sm:hidden" data-text="DP://">
+          DP<span className="text-amber">://</span>
         </span>
       </Link>
       {player && (

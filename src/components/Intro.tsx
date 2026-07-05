@@ -25,14 +25,14 @@ export function Intro() {
     <div className="intro-overlay">
       <Logo size={110} className="drop-shadow-[0_0_22px_rgba(0,240,255,0.6)]" />
       <div className="intro-title">
-        <span className="glitch" data-text="CASINO ROYALE">
-          CASINO ROYALE
+        <span className="glitch" data-text="DARKPOOL://">
+          DARKPOOL://
         </span>
       </div>
       <div className="intro-bar">
         <span />
       </div>
-      <div className="intro-sub">LEDGER.SYS // OUVERTURE DE SESSION…</div>
+      <div className="intro-sub">CERCLE PRIVÉ // OUVERTURE DE SESSION…</div>
     </div>
   );
 }

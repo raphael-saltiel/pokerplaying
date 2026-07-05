@@ -123,7 +123,7 @@ export function RouletteTable({ code, state: raw }: { code: string; state: Roule
       <div className="card-surface p-4">
         {/* Historique permanent + résultat */}
         <div className="mb-4 flex items-center gap-3">
-          <span className="tag shrink-0">LEDGER // Historique</span>
+          <span className="tag shrink-0">LOG // Historique</span>
           <div className="flex flex-wrap gap-1">
             {state.history.length === 0 && (
               <span className="text-sm text-white/40">Aucun tirage pour l&apos;instant</span>
